@@ -1,11 +1,19 @@
 package com.capstone.bwlovers.ai.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.Map;
 
 @Getter
 @Setter
 public class FastApiResponse {
     private boolean success;
-    private Object received_profile; // FastAPI에서 돌려준 profile 그대로 받기
+
+    private Map<String, Object> profile;
+
+    @JsonProperty("rag_result")
+    private Map<String, Object> ragResult;
+
 }
