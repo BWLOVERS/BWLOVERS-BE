@@ -1,7 +1,7 @@
 package com.capstone.bwlovers.maternity.repository;
 
 import com.capstone.bwlovers.maternity.domain.PregnancyInfo;
-import com.capstone.bwlovers.user.domain.User;
+import com.capstone.bwlovers.auth.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

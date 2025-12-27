@@ -17,17 +17,26 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ExceptionResponse> handleCustomException(CustomException e, HttpServletRequest request) {
-        log.warn("[CustomException] code={}, msg={}", e.getExceptionCodeName(), e.getMessage());
+
+        ExceptionCode ec = e.getExceptionCode();
+
+        log.warn("[CustomException] code={}, msg={}, path={}",
+                ec.getClientExceptionCode().name(),
+                ec.getMessage(),
+                request.getRequestURI()
+        );
 
         ExceptionResponse response = new ExceptionResponse(
-                e.getHttpStatusCode().value(),
-                e.getExceptionCodeName(),
-                e.getMessage(),
+                ec.getHttpStatus().value(),
+                ec.getClientExceptionCode().name(),
+                ec.getMessage(),
                 request.getRequestURI(),
                 ZonedDateTime.now()
         );
-        return ResponseEntity.status(e.getHttpStatusCode()).body(response);
+
+        return ResponseEntity.status(ec.getHttpStatus()).body(response);
     }
+
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ExceptionResponse> handleValidationException(MethodArgumentNotValidException e, HttpServletRequest request) {
