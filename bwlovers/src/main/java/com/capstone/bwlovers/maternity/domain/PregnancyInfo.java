@@ -1,6 +1,6 @@
 package com.capstone.bwlovers.maternity.domain;
 
-import com.capstone.bwlovers.user.domain.User;
+import com.capstone.bwlovers.auth.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
 

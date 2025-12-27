@@ -1,5 +1,11 @@
 package com.capstone.bwlovers.global.config;
 
+import com.capstone.bwlovers.auth.service.CustomOAuth2UserService;
+import com.capstone.bwlovers.global.security.jwt.JwtExceptionHandler;
+import com.capstone.bwlovers.global.security.jwt.JwtFilter;
+import com.capstone.bwlovers.global.security.jwt.JwtProvider;
+import com.capstone.bwlovers.global.security.oauth.OAuth2FailureHandler;
+import com.capstone.bwlovers.global.security.oauth.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,6 +14,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
@@ -16,28 +23,66 @@ import org.springframework.web.cors.CorsConfigurationSource;
 public class SecurityConfig {
 
     private final CorsConfigurationSource corsConfigurationSource;
+    private final JwtProvider jwtProvider;
+    private final CustomOAuth2UserService customOAuth2UserService;
+
+    @Bean
+    public JwtExceptionHandler jwtExceptionHandler() {
+        return new JwtExceptionHandler();
+    }
+
+    @Bean
+    public OAuth2SuccessHandler oAuth2SuccessHandler() {
+        return new OAuth2SuccessHandler(jwtProvider);
+    }
+
+    @Bean
+    public OAuth2FailureHandler oAuth2FailureHandler() {
+        return new OAuth2FailureHandler();
+    }
+
+    @Bean
+    public JwtFilter jwtFilter() {
+        return new JwtFilter(jwtProvider);
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
         http
-                // CORS 설정 적용 (CorsConfig에서 정의된 정책 사용)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
-
-                // CSRF 비활성화
                 .csrf(AbstractHttpConfigurer::disable)
-
-                // 기본 로그인 폼, HTTP Basic 비활성화
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
 
-                // 세션 관리 정책: JWT 등을 사용하므로 세션을 사용하지 않음 (StateLess)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // 인가 설정: 모든 요청을 무조건 허용 (초기 세팅 목적)
+                // 401/403을 JSON으로 통일함
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(jwtExceptionHandler())
+                        .accessDeniedHandler(jwtExceptionHandler())
+                )
+
+                // 인가 정책(최소 예시)
                 .authorizeHttpRequests(auth -> auth
-                        // **모든 요청 (/**)에 대해 인증 없이 접근 허용**
-                        .anyRequest().permitAll()
-                );
+                        .requestMatchers(
+                                "/",
+                                "/error",
+                                "/auth/**",
+                                "/oauth2/**",
+                                "/login/**"
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
+
+                // 네이버 OAuth2 로그인 연결
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .failureHandler(oAuth2FailureHandler())
+                )
+
+                // JWT 필터 장착
+                .addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
