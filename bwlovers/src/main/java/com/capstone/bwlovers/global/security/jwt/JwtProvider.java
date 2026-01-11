@@ -1,5 +1,7 @@
 package com.capstone.bwlovers.global.security.jwt;
 
+import com.capstone.bwlovers.auth.domain.User;
+import com.capstone.bwlovers.auth.repository.UserRepository;
 import com.capstone.bwlovers.global.exception.CustomException;
 import com.capstone.bwlovers.global.exception.ExceptionCode;
 import io.jsonwebtoken.*;
@@ -20,6 +22,8 @@ import java.util.List;
 @Component
 public class JwtProvider {
 
+    private final UserRepository userRepository;
+
     @Value("${jwt.secret}")
     private String secret;
 
@@ -30,6 +34,10 @@ public class JwtProvider {
     private long refreshExpireMs;
 
     private Key key;
+
+    public JwtProvider(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @PostConstruct
     public void init() {
@@ -106,7 +114,16 @@ public class JwtProvider {
 
     public Authentication getAuthentication(String token) {
         Claims claims = parseClaims(token);
+
         String subject = claims.getSubject();
+        String providerId = subject;
+
+        if (subject != null && subject.contains(":")) {
+            providerId = subject.substring(subject.indexOf(":") + 1);
+        }
+
+        User user = userRepository.findByProviderId(providerId)
+                .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
 
         @SuppressWarnings("unchecked")
         List<String> roles = claims.get("roles", List.class);
@@ -115,7 +132,7 @@ public class JwtProvider {
                 ? List.of()
                 : roles.stream().map(SimpleGrantedAuthority::new).toList();
 
-        return new UsernamePasswordAuthenticationToken(subject, null, authorities);
+        return new UsernamePasswordAuthenticationToken(user, null, authorities);
     }
 
     public String getSubject(String token) {

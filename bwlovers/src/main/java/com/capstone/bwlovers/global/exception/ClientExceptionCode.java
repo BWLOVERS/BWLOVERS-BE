@@ -18,4 +18,7 @@ public enum ClientExceptionCode {
     ALREADY_LOGGED_TOKEN,
     FORBIDDEN,
 
+    // User
+    USER_NOT_FOUND,
+
 }
