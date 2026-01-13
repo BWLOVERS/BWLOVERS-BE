@@ -1,4 +1,4 @@
-package com.capstone.bwlovers.user.domain;
+package com.capstone.bwlovers.health.domain;
 
 public enum HealthSection {
     PAST,           // 과거에 진단받은 질환 (임신 전)

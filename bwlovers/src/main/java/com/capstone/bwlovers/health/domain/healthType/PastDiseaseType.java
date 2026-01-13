@@ -1,4 +1,4 @@
-package com.capstone.bwlovers.user.domain.healthType;
+package com.capstone.bwlovers.health.domain.healthType;
 
 public enum PastDiseaseType {
     UTERINE_FIBROID,        // 자궁근종

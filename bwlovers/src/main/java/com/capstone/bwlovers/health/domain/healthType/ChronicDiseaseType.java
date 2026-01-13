@@ -1,4 +1,4 @@
-package com.capstone.bwlovers.user.domain.healthType;
+package com.capstone.bwlovers.health.domain.healthType;
 
 public enum ChronicDiseaseType {
     HYPERTENSION,           // 고혈압

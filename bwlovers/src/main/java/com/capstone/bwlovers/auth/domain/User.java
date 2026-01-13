@@ -1,11 +1,17 @@
 package com.capstone.bwlovers.auth.domain;
 
-import com.capstone.bwlovers.user.domain.HealthStatus;
+import com.capstone.bwlovers.health.domain.HealthStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "users", uniqueConstraints = {@UniqueConstraint(name = "uk_provider_providerId", columnNames = {"provider", "provider_id"})})
+@Table(name = "users",
+        uniqueConstraints = {@UniqueConstraint(
+                name = "uk_provider_providerId",
+                columnNames = {"provider", "provider_id"}
+                )
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -35,27 +41,14 @@ public class User {
 //    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 //    private PregnancyInfo pregnancyInfo;
 
-    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private HealthStatus healthStatus;
 
-//    public void setPregnancyInfo(PregnancyInfo pregnancyInfo) {
-//        if (this.pregnancyInfo != null) {
-//            this.pregnancyInfo.setUser(null);
-//        }
-//        this.pregnancyInfo = pregnancyInfo;
-//        if (pregnancyInfo != null) {
-//            pregnancyInfo.setUser(this);
-//        }
-//    }
-
-
     public void setHealthStatus(HealthStatus healthStatus) {
-        if (this.healthStatus != null) {
-            this.healthStatus.setUser(null);
-        }
         this.healthStatus = healthStatus;
-        if (healthStatus != null) {
+        if (healthStatus != null && healthStatus.getUser() != this) {
             healthStatus.setUser(this);
         }
     }
+
 }

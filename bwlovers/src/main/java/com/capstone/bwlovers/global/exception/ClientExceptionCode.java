@@ -20,5 +20,6 @@ public enum ClientExceptionCode {
 
     // User
     USER_NOT_FOUND,
+    HEALTH_STATUS_NOT_FOUND,
 
 }

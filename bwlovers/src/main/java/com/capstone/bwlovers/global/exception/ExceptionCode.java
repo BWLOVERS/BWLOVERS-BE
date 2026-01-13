@@ -23,7 +23,8 @@ public enum ExceptionCode {
     FORBIDDEN(HttpStatus.FORBIDDEN, ClientExceptionCode.FORBIDDEN, "해당 자원에 대한 접근 권한이 없습니다."),
 
     // User
-    USER_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.USER_NOT_FOUND, "존재하지 않는 회원입니다.");
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.USER_NOT_FOUND, "존재하지 않는 회원입니다."),
+    HEALTH_STATUS_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.HEALTH_STATUS_NOT_FOUND, "건강 정보가 아직 등록되지 않았습니다.");
 
     private final HttpStatus httpStatus;
     private final ClientExceptionCode clientExceptionCode;
