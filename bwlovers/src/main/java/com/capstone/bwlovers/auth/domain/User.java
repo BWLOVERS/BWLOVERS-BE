@@ -1,12 +1,17 @@
 package com.capstone.bwlovers.auth.domain;
 
-import com.capstone.bwlovers.maternity.domain.HealthStatus;
-import com.capstone.bwlovers.maternity.domain.PregnancyInfo;
+import com.capstone.bwlovers.health.domain.HealthStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "users", uniqueConstraints = {@UniqueConstraint(name = "uk_provider_providerId", columnNames = {"provider", "provider_id"})})
+@Table(name = "users",
+        uniqueConstraints = {@UniqueConstraint(
+                name = "uk_provider_providerId",
+                columnNames = {"provider", "provider_id"}
+                )
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -22,7 +27,7 @@ public class User {
     private OAuthProvider provider; // NAVER
 
     @Column(name = "provider_id", nullable = false, length = 100)
-    private String providerId; // 네이버 고유 ID
+    private String providerId;
 
     @Column(length = 100)
     private String email;
@@ -33,26 +38,17 @@ public class User {
     @Column(length = 20)
     private String phone;
 
-    // 1:1 - 임신 기본 정보
-    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private PregnancyInfo pregnancyInfo;
+//    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+//    private PregnancyInfo pregnancyInfo;
 
-    // 1:1 - 건강 상태 정보
-    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private HealthStatus healthStatus;
-
-    // 연관관계 편의 메서드
-    public void setPregnancyInfo(PregnancyInfo pregnancyInfo) {
-        this.pregnancyInfo = pregnancyInfo;
-        if (pregnancyInfo != null) {
-            pregnancyInfo.setUser(this);
-        }
-    }
 
     public void setHealthStatus(HealthStatus healthStatus) {
         this.healthStatus = healthStatus;
-        if (healthStatus != null) {
+        if (healthStatus != null && healthStatus.getUser() != this) {
             healthStatus.setUser(this);
         }
     }
+
 }
