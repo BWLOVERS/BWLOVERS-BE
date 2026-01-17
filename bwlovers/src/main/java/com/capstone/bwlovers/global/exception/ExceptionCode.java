@@ -24,7 +24,9 @@ public enum ExceptionCode {
 
     // User
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.USER_NOT_FOUND, "존재하지 않는 회원입니다."),
-    HEALTH_STATUS_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.HEALTH_STATUS_NOT_FOUND, "건강 정보가 아직 등록되지 않았습니다.");
+    HEALTH_STATUS_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.HEALTH_STATUS_NOT_FOUND, "산모 건강 정보가 아직 등록되지 않았습니다."),
+    PREGNANCY_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.PREGNANCY_INFO_NOT_FOUND, "산모 기본 정도가 아직 등록되지 않았습니다."),
+    JOB_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.JOB_NOT_FOUND, "존재하지 않는 직업입니다.");
 
     private final HttpStatus httpStatus;
     private final ClientExceptionCode clientExceptionCode;

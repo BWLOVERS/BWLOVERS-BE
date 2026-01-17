@@ -23,8 +23,7 @@ public class HealthStatusController {
     @PostMapping
     public ResponseEntity<HealthStatusResponse> createHealthStatue(@Valid @RequestBody HealthStatusRequest request,
                                                                    @AuthenticationPrincipal User user) {
-        HealthStatusResponse response = healthStatusService.createHealthStatus(user.getUserId(), request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(healthStatusService.createHealthStatus(user.getUserId(), request));
     }
 
     /*
@@ -41,8 +40,7 @@ public class HealthStatusController {
     @PutMapping
     public ResponseEntity<HealthStatusResponse> updateHealthStatus(@Valid @RequestBody HealthStatusRequest request,
                                                                    @AuthenticationPrincipal User user) {
-        HealthStatusResponse response = healthStatusService.createHealthStatus(user.getUserId(), request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(healthStatusService.updateHealthStatus(user.getUserId(), request));
     }
 }
 
