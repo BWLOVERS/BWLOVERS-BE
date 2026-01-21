@@ -26,7 +26,12 @@ public enum ExceptionCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.USER_NOT_FOUND, "존재하지 않는 회원입니다."),
     HEALTH_STATUS_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.HEALTH_STATUS_NOT_FOUND, "산모 건강 정보가 아직 등록되지 않았습니다."),
     PREGNANCY_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.PREGNANCY_INFO_NOT_FOUND, "산모 기본 정도가 아직 등록되지 않았습니다."),
-    JOB_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.JOB_NOT_FOUND, "존재하지 않는 직업입니다.");
+    JOB_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.JOB_NOT_FOUND, "존재하지 않는 직업입니다."),
+
+    // AI
+    AI_INVALID_REQUEST(HttpStatus.BAD_REQUEST, ClientExceptionCode.AI_INVALID_REQUEST, "AI 요청 데이터가 올바르지 않습니다."),
+    AI_PROCESSING_FAILED(HttpStatus.CONFLICT, ClientExceptionCode.AI_PROCESSING_FAILED, "AI가 현재 조건으로 분석을 수행할 수 없습니다."),
+    AI_SERVER_5XX(HttpStatus.INTERNAL_SERVER_ERROR, ClientExceptionCode.AI_SERVER_ERROR, "AI 서버 내부 오류가 발생했습니다.");
 
     private final HttpStatus httpStatus;
     private final ClientExceptionCode clientExceptionCode;

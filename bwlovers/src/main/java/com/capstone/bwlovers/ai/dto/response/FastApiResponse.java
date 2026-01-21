@@ -1,4 +1,4 @@
-package com.capstone.bwlovers.ai.dto;
+package com.capstone.bwlovers.ai.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;

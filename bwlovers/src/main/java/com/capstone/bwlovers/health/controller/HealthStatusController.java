@@ -1,5 +1,6 @@
 package com.capstone.bwlovers.health.controller;
 
+import com.capstone.bwlovers.auth.domain.User;
 import com.capstone.bwlovers.health.dto.request.HealthStatusRequest;
 import com.capstone.bwlovers.health.dto.response.HealthStatusResponse;
 import com.capstone.bwlovers.health.service.HealthStatusService;
@@ -7,7 +8,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,18 +22,16 @@ public class HealthStatusController {
      */
     @PostMapping
     public ResponseEntity<HealthStatusResponse> createHealthStatus(@Valid @RequestBody HealthStatusRequest request,
-                                                                   @AuthenticationPrincipal OAuth2User principal) {
-        Long userId = principal.getAttribute("userId");
-        return ResponseEntity.ok(healthStatusService.createHealthStatus(userId, request));
+                                                                   @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(healthStatusService.createHealthStatus(user.getUserId(), request));
     }
 
     /*
      GET /users/me/health-status : 산모 건강 상태 조회
      */
     @GetMapping
-    public ResponseEntity<HealthStatusResponse> getHealthStatus(@AuthenticationPrincipal OAuth2User principal) {
-        Long userId = principal.getAttribute("userId");
-        return ResponseEntity.ok(healthStatusService.getHealthStatus(userId));
+    public ResponseEntity<HealthStatusResponse> getHealthStatus(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(healthStatusService.getHealthStatus(user.getUserId()));
     }
 
     /*
@@ -41,8 +39,7 @@ public class HealthStatusController {
      */
     @PatchMapping
     public ResponseEntity<HealthStatusResponse> updateHealthStatus(@Valid @RequestBody HealthStatusRequest request,
-                                                                   @AuthenticationPrincipal OAuth2User principal) {
-        Long userId = principal.getAttribute("userId");
-        return ResponseEntity.ok(healthStatusService.updateHealthStatus(userId, request));
+                                                                   @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(healthStatusService.updateHealthStatus(user.getUserId(), request));
     }
 }

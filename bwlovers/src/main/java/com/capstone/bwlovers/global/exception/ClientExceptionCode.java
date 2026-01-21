@@ -24,4 +24,9 @@ public enum ClientExceptionCode {
     PREGNANCY_INFO_NOT_FOUND,
     JOB_NOT_FOUND,
 
+    // AI
+    AI_INVALID_REQUEST,
+    AI_PROCESSING_FAILED,
+    AI_SERVER_ERROR,
+
 }

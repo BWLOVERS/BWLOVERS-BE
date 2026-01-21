@@ -68,11 +68,10 @@ public class HealthStatusService {
 
         // 이번 임신 확정 진단
         if (request.getPregnancyComplications() != null) {
-            for (var type : request.getPregnancyComplications()) {
+            for (var item : request.getPregnancyComplications()) {
                 PregnancyComplication pc = PregnancyComplication.builder()
-                        .pregnancyComplicationType(type)
+                        .pregnancyComplicationType(item.getPregnancyComplicationType())
                         .build();
-
                 status.addPregnancyComplication(pc);
             }
         }
@@ -146,12 +145,13 @@ public class HealthStatusService {
 
         // 이번 임신 확정 진단
         if (request.getPregnancyComplications() != null) {
-            for (var type : request.getPregnancyComplications()) {
-
+            for (var item : request.getPregnancyComplications()) {
+                if (item == null || item.getPregnancyComplicationType() == null) {
+                    continue;
+                }
                 PregnancyComplication pc = PregnancyComplication.builder()
-                        .pregnancyComplicationType(type)
+                        .pregnancyComplicationType(item.getPregnancyComplicationType())
                         .build();
-
                 status.addPregnancyComplication(pc);
             }
         }
