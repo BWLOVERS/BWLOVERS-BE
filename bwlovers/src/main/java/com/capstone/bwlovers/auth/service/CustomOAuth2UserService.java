@@ -62,8 +62,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         return new DefaultOAuth2User(
                 List.of(() -> "ROLE_USER"),
-                Map.of("subject", subject),
-                "subject"
+                Map.of("userId", user.getUserId()),
+                "userId"
         );
     }
 

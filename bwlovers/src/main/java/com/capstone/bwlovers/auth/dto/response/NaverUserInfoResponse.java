@@ -23,5 +23,7 @@ public class NaverUserInfoResponse {
 
         @JsonProperty("mobile")
         private String mobile;
+
+        private String profileImageUrl;
     }
 }

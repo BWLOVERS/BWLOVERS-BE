@@ -1,6 +1,7 @@
 package com.capstone.bwlovers.auth.domain;
 
 import com.capstone.bwlovers.health.domain.HealthStatus;
+import com.capstone.bwlovers.pregnancy.domain.PregnancyInfo;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -38,8 +39,11 @@ public class User {
     @Column(length = 20)
     private String phone;
 
-//    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-//    private PregnancyInfo pregnancyInfo;
+    @Column(name = "profile_image_url", length = 500)
+    private String profileImageUrl;
+
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private PregnancyInfo pregnancyInfo;
 
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private HealthStatus healthStatus;
@@ -49,6 +53,11 @@ public class User {
         if (healthStatus != null && healthStatus.getUser() != this) {
             healthStatus.setUser(this);
         }
+    }
+
+    public void update(String username, String profileImageUrl) {
+        this.username = username;
+        this.profileImageUrl = profileImageUrl;
     }
 
 }

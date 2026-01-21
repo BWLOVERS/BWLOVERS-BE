@@ -2,9 +2,11 @@ package com.capstone.bwlovers.auth.service;
 
 import com.capstone.bwlovers.auth.domain.OAuthProvider;
 import com.capstone.bwlovers.auth.domain.User;
+import com.capstone.bwlovers.auth.dto.request.UpdateNaverRequest;
 import com.capstone.bwlovers.auth.dto.response.NaverUserInfoResponse;
 import com.capstone.bwlovers.auth.dto.response.NaverTokenResponse;
 import com.capstone.bwlovers.auth.dto.response.TokenResponse;
+import com.capstone.bwlovers.auth.dto.response.UpdateNaverResponse;
 import com.capstone.bwlovers.auth.repository.UserRepository;
 import com.capstone.bwlovers.global.exception.CustomException;
 import com.capstone.bwlovers.global.exception.ExceptionCode;
@@ -13,6 +15,7 @@ import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -63,6 +66,7 @@ public class AuthService {
         String email = userInfoRes.getResponse().getEmail();
         String name = userInfoRes.getResponse().getName();
         String mobile = userInfoRes.getResponse().getMobile();
+        String profileImageUrl = userInfoRes.getResponse().getProfileImageUrl();
 
         // DB upsert
         User user = userRepository.findByProviderAndProviderId(OAuthProvider.NAVER, providerId)
@@ -73,6 +77,7 @@ public class AuthService {
                                 .email(email == null ? "unknown@naver.com" : email) // email이 null일 수 있으면 방어
                                 .username(name)
                                 .phone(mobile)
+                                .profileImageUrl(profileImageUrl != null ? profileImageUrl : "/images/default-profile.png")
                                 .build()
                 ));
 
@@ -123,6 +128,26 @@ public class AuthService {
                 "&client_id=" + clientId +
                 "&redirect_uri=" + redirectUri +
                 "&state=" + state;
+    }
+
+    /*
+    네이버 정보 수정
+     */
+    @Transactional
+    public UpdateNaverResponse updateNaver(Long userId, UpdateNaverRequest request) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
+
+        if (request.getUsername() != null && !request.getUsername().isBlank()) {
+            user.update(request.getUsername(), user.getProfileImageUrl());
+        }
+
+        if (request.getProfileImageUrl() != null && !request.getProfileImageUrl().isBlank()) {
+            user.update(user.getUsername(), request.getProfileImageUrl());
+        }
+
+        return new UpdateNaverResponse(user.getUsername(), user.getProfileImageUrl());
     }
 
 }
