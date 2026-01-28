@@ -47,4 +47,4 @@ jwt:
 
 ai:
   server:
-    url: http://localhost:8000
+    url: http://localhost:8000 #추후에 변경 예정

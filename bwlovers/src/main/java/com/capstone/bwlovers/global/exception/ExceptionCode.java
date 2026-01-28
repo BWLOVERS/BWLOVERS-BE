@@ -31,7 +31,11 @@ public enum ExceptionCode {
     // AI
     AI_INVALID_REQUEST(HttpStatus.BAD_REQUEST, ClientExceptionCode.AI_INVALID_REQUEST, "AI 요청 데이터가 올바르지 않습니다."),
     AI_PROCESSING_FAILED(HttpStatus.CONFLICT, ClientExceptionCode.AI_PROCESSING_FAILED, "AI가 현재 조건으로 분석을 수행할 수 없습니다."),
-    AI_SERVER_5XX(HttpStatus.INTERNAL_SERVER_ERROR, ClientExceptionCode.AI_SERVER_ERROR, "AI 서버 내부 오류가 발생했습니다.");
+    AI_SERVER_5XX(HttpStatus.INTERNAL_SERVER_ERROR, ClientExceptionCode.AI_SERVER_ERROR, "AI 서버 내부 오류가 발생했습니다."),
+    AI_RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.AI_RESULT_NOT_FOUND, "AI 분석 결과를 찾을 수 없습니다. (만료되었거나 존재하지 않음)"),
+    AI_SAVE_EMPTY_SELECTION(HttpStatus.BAD_REQUEST, ClientExceptionCode.AI_SAVE_EMPTY_SELECTION, "저장할 특약이 선택되지 않았습니다."),
+    AI_ALREADY_SAVED(HttpStatus.CONFLICT, ClientExceptionCode.AI_ALREADY_SAVED, "이미 저장된 AI 추천 결과입니다."),
+    JSON_SERIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, ClientExceptionCode.JSON_SERIALIZATION_FAILED, "데이터 직렬화 처리 중 오류가 발생했습니다.");
 
     private final HttpStatus httpStatus;
     private final ClientExceptionCode clientExceptionCode;
