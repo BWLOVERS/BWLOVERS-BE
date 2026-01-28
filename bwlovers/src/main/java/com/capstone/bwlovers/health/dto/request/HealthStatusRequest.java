@@ -18,13 +18,7 @@ public class HealthStatusRequest {
 
     private List<PastDiseaseItem> pastDiseases;
     private List<ChronicDiseaseItem> chronicDiseases;
-    private List<PregnancyComplicationItem> pregnancyComplications;
-
-    @Builder
-    @Getter
-    public static class PregnancyComplicationItem {
-        private PregnancyComplicationType pregnancyComplicationType;
-    }
+    private List<PregnancyComplicationType> pregnancyComplications;
 
     public static HealthStatusRequest from(HealthStatus healthStatus) {
         return HealthStatusRequest.builder()
@@ -47,10 +41,8 @@ public class HealthStatusRequest {
                 )
                 .pregnancyComplications(
                         healthStatus.getPregnancyComplications().stream()
-                                .map(pc -> PregnancyComplicationItem.builder()
-                                        .pregnancyComplicationType(pc.getPregnancyComplicationType())
-                                        .build()
-                                ).toList()
+                                .map(pc -> pc.getPregnancyComplicationType())
+                                .toList()
                 )
                 .build();
     }
