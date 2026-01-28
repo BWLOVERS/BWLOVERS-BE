@@ -8,7 +8,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public class InsuranceRecommendationResponse {
+public class AiRecommendationResponse {
 
     @JsonProperty("insurance_company")
     private String insuranceCompany;

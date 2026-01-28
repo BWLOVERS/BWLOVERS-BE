@@ -1,8 +1,8 @@
 package com.capstone.bwlovers.ai.controller;
 
 import com.capstone.bwlovers.ai.dto.request.AiSaveSelectedRequest;
-import com.capstone.bwlovers.ai.dto.response.AiRecommendTicketResponse;
-import com.capstone.bwlovers.ai.dto.response.InsuranceRecommendationResponse;
+import com.capstone.bwlovers.ai.dto.response.AiRecommendationListResponse;
+import com.capstone.bwlovers.ai.dto.response.AiRecommendationResponse;
 import com.capstone.bwlovers.ai.service.AiService;
 import com.capstone.bwlovers.auth.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -25,25 +25,25 @@ public class AiController {
 //    }
 
     /**
-     * 추천 요청 → resultId(ticket) 반환
-     * 프론트는 이 resultId로 결과 조회함
+     * 추천 리스트 조회 POST /ai/recommend
      */
     @PostMapping("/recommend")
-    public AiRecommendTicketResponse recommendTicket(@AuthenticationPrincipal User user) {
-        return aiService.requestAiRecommendationTicket(user.getUserId());
+    public AiRecommendationListResponse recommendList(@AuthenticationPrincipal User user) {
+        return aiService.requestAiRecommendationList(user.getUserId());
     }
 
     /**
-     * resultId로 결과 조회 (미리보기)
+     * 추천 리스트 상세 조회 GET /ai/results/{resultId}/items/{itemId}
      */
-    @GetMapping("/results/{resultId}")
-    public InsuranceRecommendationResponse getResult(@AuthenticationPrincipal User user,
-                                                     @PathVariable String resultId) {
-        return aiService.fetchAiResult(user.getUserId(), resultId);
+    @GetMapping("/results/{resultId}/items/{itemId}")
+    public AiRecommendationResponse getDetail(@AuthenticationPrincipal User user,
+                                              @PathVariable String resultId,
+                                              @PathVariable String itemId) {
+        return aiService.fetchAiResultDetail(user.getUserId(), resultId, itemId);
     }
 
     /**
-     * 사용자가 선택한 특약만 저장
+     * 선택 저장 POST /ai/save
      */
     @PostMapping("/save")
     public Long saveSelected(@AuthenticationPrincipal User user,
