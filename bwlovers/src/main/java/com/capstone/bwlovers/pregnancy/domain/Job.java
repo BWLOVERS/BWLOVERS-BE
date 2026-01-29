@@ -20,4 +20,5 @@ public class Job {
 
     @Column(name = "risk_level", nullable = false)
     private Integer riskLevel; // 1~5
+
 }
