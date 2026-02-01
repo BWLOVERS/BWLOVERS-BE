@@ -1,5 +1,6 @@
 package com.capstone.bwlovers.pregnancy.dto.response;
 
+import com.capstone.bwlovers.pregnancy.domain.Job;
 import com.capstone.bwlovers.pregnancy.domain.PregnancyInfo;
 import lombok.*;
 
@@ -23,8 +24,7 @@ public class PregnancyInfoResponse {
     private LocalDate expectedDate;
     private Boolean isMultiplePregnancy;
     private Integer miscarriageHistory;
-
-    private java.util.List<JobDto> jobs;
+    private JobDto job;
 
     @Getter
     @NoArgsConstructor
@@ -34,6 +34,15 @@ public class PregnancyInfoResponse {
         private Long jobId;
         private String jobName;
         private Integer riskLevel;
+
+        public static JobDto from(Job job) {
+            if (job == null) return null;
+            return JobDto.builder()
+                    .jobId(job.getJobId())
+                    .jobName(job.getJobName())
+                    .riskLevel(job.getRiskLevel())
+                    .build();
+        }
     }
 
     public static PregnancyInfoResponse from(PregnancyInfo info) {
@@ -49,13 +58,7 @@ public class PregnancyInfoResponse {
                 .expectedDate(info.getExpectedDate())
                 .isMultiplePregnancy(info.getIsMultiplePregnancy())
                 .miscarriageHistory(info.getMiscarriageHistory())
-                .jobs(info.getJobs().stream()
-                        .map(j -> JobDto.builder()
-                                .jobId(j.getJobId())
-                                .jobName(j.getJobName())
-                                .riskLevel(j.getRiskLevel())
-                                .build())
-                        .toList())
+                .job(JobDto.from(info.getJob()))
                 .build();
     }
 }

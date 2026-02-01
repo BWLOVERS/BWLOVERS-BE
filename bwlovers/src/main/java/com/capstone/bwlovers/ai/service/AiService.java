@@ -2,10 +2,11 @@ package com.capstone.bwlovers.ai.service;
 
 import com.capstone.bwlovers.ai.dto.request.AiSaveSelectedRequest;
 import com.capstone.bwlovers.ai.dto.request.FastApiRequest;
-import com.capstone.bwlovers.ai.dto.response.AiRecommendTicketResponse;
+import com.capstone.bwlovers.ai.dto.response.AiRecommendationListResponse;
 import com.capstone.bwlovers.ai.dto.response.FastApiResponse;
-import com.capstone.bwlovers.ai.dto.response.FastApiTicketResponse;
-import com.capstone.bwlovers.ai.dto.response.InsuranceRecommendationResponse;
+import com.capstone.bwlovers.ai.dto.response.AiRecommendationResponse;
+import com.capstone.bwlovers.ai.dto.request.AiCallbackRequest;
+import com.capstone.bwlovers.ai.service.AiResultCacheService;
 import com.capstone.bwlovers.auth.domain.User;
 import com.capstone.bwlovers.auth.repository.UserRepository;
 import com.capstone.bwlovers.global.exception.CustomException;
@@ -13,7 +14,6 @@ import com.capstone.bwlovers.global.exception.ExceptionCode;
 import com.capstone.bwlovers.health.domain.HealthStatus;
 import com.capstone.bwlovers.health.dto.request.HealthStatusRequest;
 import com.capstone.bwlovers.health.repository.HealthStatusRepository;
-import com.capstone.bwlovers.insurance.domain.EvidenceSource;
 import com.capstone.bwlovers.insurance.domain.InsuranceProduct;
 import com.capstone.bwlovers.insurance.domain.SpecialContract;
 import com.capstone.bwlovers.insurance.repository.InsuranceProductRepository;
@@ -22,6 +22,7 @@ import com.capstone.bwlovers.pregnancy.dto.request.PregnancyInfoRequest;
 import com.capstone.bwlovers.pregnancy.repository.PregnancyInfoRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -31,6 +32,7 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AiService {
@@ -39,15 +41,16 @@ public class AiService {
     private final PregnancyInfoRepository pregnancyInfoRepository;
     private final HealthStatusRepository healthStatusRepository;
     private final WebClient aiWebClient;
+    private final AiResultCacheService aiResultCacheService;
 
     private final InsuranceProductRepository insuranceProductRepository;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * 결과를 바로 받는 방식 (디버깅용)
+     * (기존 A안) 결과 전체를 바로 받는 방식 - 유지함(선택)
      */
     public FastApiResponse requestAiRecommendation(Long userId) {
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
         PregnancyInfo pregnancyInfo = pregnancyInfoRepository.findByUser(user)
@@ -61,39 +64,25 @@ public class AiService {
                 .uri("/ai/recommend")
                 .bodyValue(dto)
                 .retrieve()
-
-                .onStatus(
-                        status -> status.value() == 400 || status.value() == 422,
-                        resp -> resp.bodyToMono(String.class)
-                                .defaultIfEmpty("")
-                                .flatMap(body -> Mono.error(new CustomException(ExceptionCode.AI_INVALID_REQUEST)))
-                )
-                .onStatus(
-                        status -> status.value() == 409,
-                        resp -> resp.bodyToMono(String.class)
-                                .defaultIfEmpty("")
-                                .flatMap(body -> Mono.error(new CustomException(ExceptionCode.AI_PROCESSING_FAILED)))
-                )
-                .onStatus(
-                        status -> status.is5xxServerError(),
-                        resp -> resp.bodyToMono(String.class)
-                                .defaultIfEmpty("")
-                                .flatMap(body -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX)))
-                )
-
+                .onStatus(s -> s.value() == 400 || s.value() == 422,
+                        resp -> Mono.error(new CustomException(ExceptionCode.AI_INVALID_REQUEST)))
+                .onStatus(s -> s.value() == 409,
+                        resp -> Mono.error(new CustomException(ExceptionCode.AI_PROCESSING_FAILED)))
+                .onStatus(s -> s.is5xxServerError(),
+                        resp -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX)))
                 .bodyToMono(FastApiResponse.class)
                 .timeout(Duration.ofSeconds(25))
                 .block();
     }
 
     // =========================================================
-    // ticket 발급 -> 결과 조회 -> 선택 저장
+    // 리스트 → 상세 보기 → 선택 저장
     // =========================================================
 
     /**
-     * FastAPI가 결과를 임시 저장하고 resultId(ticket)만 내려주는 방식
+     * 추천 리스트 조회
      */
-    public AiRecommendTicketResponse requestAiRecommendationTicket(Long userId) {
+    public AiRecommendationListResponse requestAiRecommendationList(Long userId) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
@@ -104,68 +93,69 @@ public class AiService {
 
         FastApiRequest dto = toFastApiRequest(pregnancyInfo, healthStatus);
 
-        FastApiTicketResponse ticket = aiWebClient.post()
-                .uri("/ai/recommend") // FastAPI가 ticket을 내려주는 엔드포인트로 맞춰야 함
+        String raw = aiWebClient.post()
+                .uri("/ai/recommend") // FastAPI: 리스트 + resultId 반환해야 함
                 .bodyValue(dto)
                 .retrieve()
-
-                .onStatus(
-                        status -> status.value() == 400 || status.value() == 422,
-                        resp -> Mono.error(new CustomException(ExceptionCode.AI_INVALID_REQUEST))
-                )
-                .onStatus(
-                        status -> status.value() == 409,
-                        resp -> Mono.error(new CustomException(ExceptionCode.AI_PROCESSING_FAILED))
-                )
-                .onStatus(
-                        status -> status.is5xxServerError(),
-                        resp -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX))
-                )
-
-                .bodyToMono(FastApiTicketResponse.class)
+                .onStatus(s -> s.value() == 400 || s.value() == 422,
+                        resp -> Mono.error(new CustomException(ExceptionCode.AI_INVALID_REQUEST)))
+                .onStatus(s -> s.value() == 409,
+                        resp -> Mono.error(new CustomException(ExceptionCode.AI_PROCESSING_FAILED)))
+                .onStatus(s -> s.is5xxServerError(),
+                        resp -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX)))
+                .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(25))
                 .block();
 
-        if (ticket == null || ticket.getResultId() == null || ticket.getResultId().isBlank()) {
+        log.info("[AI /ai/recommend RAW RESPONSE] {}", raw);
+
+        AiRecommendationListResponse list;
+        try {
+            list = objectMapper.readValue(raw, AiRecommendationListResponse.class);
+        } catch (Exception e) {
+            log.error("[AI /ai/recommend PARSE ERROR] raw={}", raw, e);
             throw new CustomException(ExceptionCode.AI_SERVER_5XX);
         }
-
-        int ttl = ticket.getExpiresInSec() != null ? ticket.getExpiresInSec() : 600;
-        return new AiRecommendTicketResponse(ticket.getResultId(), ttl);
+        return list;
     }
 
     /**
-     * resultId로 결과 조회함 (프론트 미리보기용)
+     * 결과 상세 보기
+     * GET /ai/results/{resultId}/items/{itemId}
      */
-    public InsuranceRecommendationResponse fetchAiResult(Long userId, String resultId) {
+    public AiRecommendationResponse fetchAiResultDetail(Long userId, String resultId, String itemId) {
 
         userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
 
-        if (resultId == null || resultId.isBlank()) {
+        if (isBlank(resultId) || isBlank(itemId)) {
             throw new CustomException(ExceptionCode.AI_INVALID_REQUEST);
         }
 
         return aiWebClient.get()
-                .uri(uriBuilder -> uriBuilder.path("/ai/results/{resultId}").build(resultId))
+                .uri(uriBuilder -> uriBuilder
+                        .path("/ai/results/{resultId}/items/{itemId}")
+                        .build(resultId, itemId))
                 .retrieve()
-
-                .onStatus(
-                        status -> status.value() == 404,
-                        resp -> Mono.error(new CustomException(ExceptionCode.AI_RESULT_NOT_FOUND))
-                )
-                .onStatus(
-                        status -> status.is5xxServerError(),
-                        resp -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX))
-                )
-
-                .bodyToMono(InsuranceRecommendationResponse.class)
+                .onStatus(s -> s.value() == 404,
+                        resp -> Mono.error(new CustomException(ExceptionCode.AI_RESULT_NOT_FOUND)))
+                .onStatus(s -> s.is5xxServerError(),
+                        resp -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX)))
+                .bodyToMono(AiRecommendationResponse.class)
                 .timeout(Duration.ofSeconds(10))
                 .block();
     }
 
     /**
-     * 사용자가 선택한 특약만 DB에 저장함
+     * 선택 저장
+     *
+     * 동일 보험 기준:
+     * - 보험회사명 + 보험이름 + 장기여부가 같으면 같은 보험으로 판단함
+     *
+     * 동작:
+     * 1) (resultId, itemId)로 AI 상세 결과 가져옴
+     * 2) 동일 보험이 DB에 있으면 그 보험(insuranceId)에 특약을 누적 저장함
+     * 3) 없으면 보험을 새로 만든 뒤 특약을 저장함
      */
     @Transactional
     public Long saveSelected(Long userId, AiSaveSelectedRequest request) {
@@ -173,41 +163,64 @@ public class AiService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
 
-        if (request == null || request.getResultId() == null || request.getResultId().isBlank()) {
+        if (request == null || isBlank(request.getResultId()) || isBlank(request.getItemId())) {
             throw new CustomException(ExceptionCode.AI_INVALID_REQUEST);
         }
         if (request.getSelectedContractNames() == null || request.getSelectedContractNames().isEmpty()) {
             throw new CustomException(ExceptionCode.AI_SAVE_EMPTY_SELECTION);
         }
 
-        // 중복 저장 방지함 (같은 resultId를 또 저장 못하게 함)
-        insuranceProductRepository.findByUser_UserIdAndResultId(userId, request.getResultId())
-                .ifPresent(x -> { throw new CustomException(ExceptionCode.AI_ALREADY_SAVED); }); // ✅ 추가 추천
+        // AI 상세 결과 조회
+        AiRecommendationResponse detail =
+                fetchAiResultDetail(userId, request.getResultId(), request.getItemId());
 
-        // FastAPI 임시 결과 가져옴
-        InsuranceRecommendationResponse result = fetchAiResult(userId, request.getResultId());
+        String company = nullToEmpty(detail.getInsuranceCompany());
+        String productName = nullToEmpty(detail.getProductName());
+        boolean isLongTerm = detail.isLongTerm();
 
-        // 보험 저장 엔티티 생성
-        InsuranceProduct insurance = InsuranceProduct.builder()
-                .user(user)
-                .resultId(request.getResultId())
-                .insuranceCompany(nullToEmpty(result.getInsuranceCompany()))
-                .productName(nullToEmpty(result.getProductName()))
-                .isLongTerm(result.isLongTerm())
-                .monthlyCost(result.getMonthlyCost() == null ? 0L : result.getMonthlyCost().longValue())
-                .insuranceRecommendationReason(nullToEmpty(result.getInsuranceRecommendationReason()))
-                .build();
-
-        // 선택 특약만 저장
-        Set<String> selected = new HashSet<>(request.getSelectedContractNames());
-
-        if (result.getSpecialContracts() == null || result.getSpecialContracts().isEmpty()) {
+        if (isBlank(company) || isBlank(productName)) {
             throw new CustomException(ExceptionCode.AI_PROCESSING_FAILED);
         }
 
-        for (var sc : result.getSpecialContracts()) {
+        // 동일 보험 찾기: (user + company + productName + isLongTerm)
+        InsuranceProduct insurance = insuranceProductRepository
+                .findByUser_UserIdAndInsuranceCompanyAndProductNameAndIsLongTerm(
+                        userId, company, productName, isLongTerm
+                )
+                .orElseGet(() -> insuranceProductRepository.save(
+                        InsuranceProduct.builder()
+                                .user(user)
+                                .resultId(request.getResultId())
+                                .insuranceCompany(company)
+                                .productName(productName)
+                                .isLongTerm(isLongTerm)
+                                .monthlyCost(detail.getMonthlyCost() == null ? 0L : detail.getMonthlyCost().longValue())
+                                .insuranceRecommendationReason(nullToEmpty(detail.getInsuranceRecommendationReason()))
+                                .build()
+                ));
+
+        // 선택한 특약만 누적 추가
+        Set<String> selected = new HashSet<>(request.getSelectedContractNames());
+
+        if (detail.getSpecialContracts() == null || detail.getSpecialContracts().isEmpty()) {
+            throw new CustomException(ExceptionCode.AI_PROCESSING_FAILED);
+        }
+
+        // 중복 방지: 이미 들어있는 특약명은 스킵함
+        Set<String> existingNames = new HashSet<>();
+        if (insurance.getSpecialContracts() != null) {
+            for (SpecialContract c : insurance.getSpecialContracts()) {
+                if (c != null && c.getContractName() != null) {
+                    existingNames.add(c.getContractName());
+                }
+            }
+        }
+
+        for (var sc : detail.getSpecialContracts()) {
             if (sc == null || sc.getContractName() == null) continue;
             if (!selected.contains(sc.getContractName())) continue;
+
+            if (existingNames.contains(sc.getContractName())) continue;
 
             String keyFeaturesJson = toJson(sc.getKeyFeatures());
 
@@ -220,30 +233,52 @@ public class AiService {
                     .build();
 
             insurance.addContract(contract);
+            existingNames.add(sc.getContractName());
         }
 
-        if (insurance.getSpecialContracts().isEmpty()) {
+        // "이번 요청에서 선택된 특약"이 하나도 추가되지 않으면 저장 의미 없으니 에러 처리함
+        // (기존 보험에 이미 다 들어있어서 스킵된 케이스 포함)
+        if (insurance.getSpecialContracts() == null || insurance.getSpecialContracts().isEmpty()) {
             throw new CustomException(ExceptionCode.AI_SAVE_EMPTY_SELECTION);
-        }
-
-        // 근거도 같이 저장
-        if (result.getEvidenceSources() != null) {
-            for (var ev : result.getEvidenceSources()) {
-                if (ev == null) continue;
-
-                EvidenceSource evidence = EvidenceSource.builder()
-                        .pageNumber(ev.getPageNumber() == null ? 0L : ev.getPageNumber().longValue())
-                        .textSnippet(nullToEmpty(ev.getTextSnippet()))
-                        .build();
-
-                insurance.addEvidence(evidence);
-            }
         }
 
         InsuranceProduct saved = insuranceProductRepository.save(insurance);
         return saved.getInsuranceId();
     }
 
+    /**
+     * AI callback 결과를 Redis에 저장함
+     * - listKey(resultId) : 리스트 요약
+     * - detailKey(resultId, itemId) : itemId별 상세
+     */
+    public void cacheCallbackResult(AiCallbackRequest callback) {
+
+        if (callback == null || isBlank(callback.getResultId())) {
+            throw new CustomException(ExceptionCode.AI_INVALID_REQUEST);
+        }
+
+        long ttlSec = (callback.getExpiresInSec() == null ? 600L : callback.getExpiresInSec());
+
+        // 1) 리스트 요약 생성 후 저장
+        AiRecommendationListResponse list = AiRecommendationListResponse.fromCallback(callback);
+        aiResultCacheService.saveList(callback.getResultId(), list, ttlSec);
+
+        // 2) 상세(itemId별) 저장
+        if (callback.getItems() != null) {
+            for (var item : callback.getItems()) {
+                if (item == null || isBlank(item.getItemId())) continue;
+
+                AiRecommendationResponse detail = AiRecommendationResponse.fromCallbackItem(item);
+                aiResultCacheService.saveDetail(callback.getResultId(), item.getItemId(), detail, ttlSec);
+            }
+        }
+    }
+
+
+
+    // =========================================================
+    // private
+    // =========================================================
 
     private FastApiRequest toFastApiRequest(PregnancyInfo pregnancyInfo, HealthStatus healthStatus) {
         PregnancyInfoRequest pregnancyInfoRequest = PregnancyInfoRequest.from(pregnancyInfo);
@@ -261,5 +296,9 @@ public class AiService {
 
     private String nullToEmpty(String s) {
         return s == null ? "" : s;
+    }
+
+    private boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
 }

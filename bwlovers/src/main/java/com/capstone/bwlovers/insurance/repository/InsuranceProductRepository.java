@@ -7,4 +7,10 @@ import java.util.Optional;
 
 public interface InsuranceProductRepository extends JpaRepository<InsuranceProduct, Long> {
     Optional<InsuranceProduct> findByUser_UserIdAndResultId(Long userId, String resultId);
+    Optional<InsuranceProduct> findByUser_UserIdAndInsuranceCompanyAndProductNameAndIsLongTerm(
+            Long userId,
+            String insuranceCompany,
+            String productName,
+            boolean isLongTerm
+    );
 }

@@ -4,6 +4,7 @@ import com.capstone.bwlovers.auth.domain.User;
 import com.capstone.bwlovers.auth.repository.UserRepository;
 import com.capstone.bwlovers.global.exception.CustomException;
 import com.capstone.bwlovers.global.exception.ExceptionCode;
+import com.capstone.bwlovers.pregnancy.domain.Job;
 import com.capstone.bwlovers.pregnancy.domain.PregnancyInfo;
 import com.capstone.bwlovers.pregnancy.dto.request.PregnancyInfoRequest;
 import com.capstone.bwlovers.pregnancy.dto.response.PregnancyInfoResponse;
@@ -44,14 +45,13 @@ public class PregnancyInfoService {
                 request.getMiscarriageHistory()
         );
 
-        info.clearJobs();
-        var jobIds = request.getJobIds() == null ? java.util.List.<Long>of() : request.getJobIds();
-        var jobs = jobRepository.findAllById(jobIds);
-
-        if (jobs.size() != jobIds.size()) {
-            throw new CustomException(ExceptionCode.JOB_NOT_FOUND);
+        if (request.getJobName() != null) {
+            Job job = jobRepository.findByJobName(request.getJobName())
+                    .orElseThrow(() -> new CustomException(ExceptionCode.JOB_NOT_FOUND));
+            info.changeJob(job);
+        } else {
+            info.changeJob(null);
         }
-        jobs.forEach(info::addJob);
 
         return PregnancyInfoResponse.from(pregnancyInfoRepository.save(info));
     }
@@ -91,19 +91,12 @@ public class PregnancyInfoService {
                 request.getMiscarriageHistory() != null ? request.getMiscarriageHistory() : info.getMiscarriageHistory()
         );
 
-        if (request.getJobIds() != null) {
-            info.clearJobs();
-
-            var jobIds = request.getJobIds();
-            var jobs = jobRepository.findAllById(jobIds);
-
-            if (jobs.size() != jobIds.size()) {
-                throw new CustomException(ExceptionCode.JOB_NOT_FOUND);
-            }
-            jobs.forEach(info::addJob);
+        if (request.getJobName() != null) {
+            Job job = jobRepository.findByJobName(request.getJobName())
+                    .orElseThrow(() -> new CustomException(ExceptionCode.JOB_NOT_FOUND));
+            info.changeJob(job);
         }
 
-        pregnancyInfoRepository.save(info);
-        return PregnancyInfoResponse.from(info);
+        return PregnancyInfoResponse.from(pregnancyInfoRepository.save(info));
     }
 }

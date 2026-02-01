@@ -11,6 +11,7 @@ import java.time.LocalDate;
 @Builder
 public class PregnancyInfoRequest {
 
+    private Long userId;
     private LocalDate birthDate;
     private Integer height;
     private Integer weightPre;
@@ -20,10 +21,11 @@ public class PregnancyInfoRequest {
     private LocalDate expectedDate;
     private Boolean isMultiplePregnancy;
     private Integer miscarriageHistory;
-    private java.util.List<Long> jobIds;
+    private String jobName;;
 
     public static PregnancyInfoRequest from(PregnancyInfo pregnancyInfo) {
         return PregnancyInfoRequest.builder()
+                .userId(pregnancyInfo.getUser().getUserId())
                 .birthDate(pregnancyInfo.getBirthDate())
                 .height(pregnancyInfo.getHeight())
                 .weightPre(pregnancyInfo.getWeightPre())
@@ -33,11 +35,7 @@ public class PregnancyInfoRequest {
                 .expectedDate(pregnancyInfo.getExpectedDate())
                 .isMultiplePregnancy(pregnancyInfo.getIsMultiplePregnancy())
                 .miscarriageHistory(pregnancyInfo.getMiscarriageHistory())
-                .jobIds(
-                        pregnancyInfo.getJobs().stream()
-                                .map(job -> job.getJobId())
-                                .toList()
-                )
+                .jobName(pregnancyInfo.getJob().getJobName())
                 .build();
     }
 }
