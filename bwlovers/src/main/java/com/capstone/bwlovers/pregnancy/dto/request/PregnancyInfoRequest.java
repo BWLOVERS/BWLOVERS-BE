@@ -11,6 +11,7 @@ import java.time.LocalDate;
 @Builder
 public class PregnancyInfoRequest {
 
+    private Long userId;
     private LocalDate birthDate;
     private Integer height;
     private Integer weightPre;
@@ -24,6 +25,7 @@ public class PregnancyInfoRequest {
 
     public static PregnancyInfoRequest from(PregnancyInfo pregnancyInfo) {
         return PregnancyInfoRequest.builder()
+                .userId(pregnancyInfo.getUser().getUserId())
                 .birthDate(pregnancyInfo.getBirthDate())
                 .height(pregnancyInfo.getHeight())
                 .weightPre(pregnancyInfo.getWeightPre())

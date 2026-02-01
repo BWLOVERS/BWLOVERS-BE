@@ -5,6 +5,8 @@ import com.capstone.bwlovers.ai.dto.request.FastApiRequest;
 import com.capstone.bwlovers.ai.dto.response.AiRecommendationListResponse;
 import com.capstone.bwlovers.ai.dto.response.FastApiResponse;
 import com.capstone.bwlovers.ai.dto.response.AiRecommendationResponse;
+import com.capstone.bwlovers.ai.dto.request.AiCallbackRequest;
+import com.capstone.bwlovers.ai.service.AiResultCacheService;
 import com.capstone.bwlovers.auth.domain.User;
 import com.capstone.bwlovers.auth.repository.UserRepository;
 import com.capstone.bwlovers.global.exception.CustomException;
@@ -20,6 +22,7 @@ import com.capstone.bwlovers.pregnancy.dto.request.PregnancyInfoRequest;
 import com.capstone.bwlovers.pregnancy.repository.PregnancyInfoRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -29,6 +32,7 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AiService {
@@ -37,6 +41,7 @@ public class AiService {
     private final PregnancyInfoRepository pregnancyInfoRepository;
     private final HealthStatusRepository healthStatusRepository;
     private final WebClient aiWebClient;
+    private final AiResultCacheService aiResultCacheService;
 
     private final InsuranceProductRepository insuranceProductRepository;
 
@@ -88,7 +93,7 @@ public class AiService {
 
         FastApiRequest dto = toFastApiRequest(pregnancyInfo, healthStatus);
 
-        AiRecommendationListResponse list = aiWebClient.post()
+        String raw = aiWebClient.post()
                 .uri("/ai/recommend") // FastAPI: 리스트 + resultId 반환해야 함
                 .bodyValue(dto)
                 .retrieve()
@@ -98,15 +103,18 @@ public class AiService {
                         resp -> Mono.error(new CustomException(ExceptionCode.AI_PROCESSING_FAILED)))
                 .onStatus(s -> s.is5xxServerError(),
                         resp -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX)))
-                .bodyToMono(AiRecommendationListResponse.class)
+                .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(25))
                 .block();
 
-        if (list == null || isBlank(list.getResultId())) {
+        log.info("[AI /ai/recommend RAW RESPONSE] {}", raw);
+
+        AiRecommendationListResponse list;
+        try {
+            list = objectMapper.readValue(raw, AiRecommendationListResponse.class);
+        } catch (Exception e) {
+            log.error("[AI /ai/recommend PARSE ERROR] raw={}", raw, e);
             throw new CustomException(ExceptionCode.AI_SERVER_5XX);
-        }
-        if (list.getItems() == null || list.getItems().isEmpty()) {
-            throw new CustomException(ExceptionCode.AI_PROCESSING_FAILED);
         }
         return list;
     }
@@ -237,6 +245,35 @@ public class AiService {
         InsuranceProduct saved = insuranceProductRepository.save(insurance);
         return saved.getInsuranceId();
     }
+
+    /**
+     * AI callback 결과를 Redis에 저장함
+     * - listKey(resultId) : 리스트 요약
+     * - detailKey(resultId, itemId) : itemId별 상세
+     */
+    public void cacheCallbackResult(AiCallbackRequest callback) {
+
+        if (callback == null || isBlank(callback.getResultId())) {
+            throw new CustomException(ExceptionCode.AI_INVALID_REQUEST);
+        }
+
+        long ttlSec = (callback.getExpiresInSec() == null ? 600L : callback.getExpiresInSec());
+
+        // 1) 리스트 요약 생성 후 저장
+        AiRecommendationListResponse list = AiRecommendationListResponse.fromCallback(callback);
+        aiResultCacheService.saveList(callback.getResultId(), list, ttlSec);
+
+        // 2) 상세(itemId별) 저장
+        if (callback.getItems() != null) {
+            for (var item : callback.getItems()) {
+                if (item == null || isBlank(item.getItemId())) continue;
+
+                AiRecommendationResponse detail = AiRecommendationResponse.fromCallbackItem(item);
+                aiResultCacheService.saveDetail(callback.getResultId(), item.getItemId(), detail, ttlSec);
+            }
+        }
+    }
+
 
 
     // =========================================================

@@ -70,7 +70,8 @@ public class SecurityConfig {
                                 "/error",
                                 "/auth/**",
                                 "/oauth2/**",
-                                "/login/**"
+                                "/login/**",
+                                "/ai/callback/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
