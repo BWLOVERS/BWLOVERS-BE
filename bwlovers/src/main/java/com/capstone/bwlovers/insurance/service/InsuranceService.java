@@ -155,12 +155,27 @@ public class InsuranceService {
      */
     @Transactional
     public String updateInsuranceMemo(Long userId, Long insuranceId, String newMemo) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
         InsuranceProduct insurance = insuranceProductRepository.findById(insuranceId)
                 .orElseThrow(() -> new CustomException(ExceptionCode.INSURANCE_NOT_FOUND));
+        if (!insurance.getUser().getUserId().equals(userId)) {
+            throw new CustomException(ExceptionCode.USER_NOT_FOUND);
+        }
 
         insurance.updateMemo(newMemo);
         return insurance.getMemo();
+    }
+
+    /*
+    보험 삭제
+     */
+    @Transactional
+    public void deleteInsurance(Long userId, Long insuranceId) {
+        InsuranceProduct insurance = insuranceProductRepository.findById(insuranceId)
+                .orElseThrow(() -> new CustomException(ExceptionCode.INSURANCE_NOT_FOUND));
+        if (!insurance.getUser().getUserId().equals(userId)) {
+            throw new CustomException(ExceptionCode.USER_NOT_FOUND);
+        }
+
+        insuranceProductRepository.delete(insurance);
     }
 }

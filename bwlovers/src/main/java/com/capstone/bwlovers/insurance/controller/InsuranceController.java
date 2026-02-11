@@ -27,7 +27,7 @@ public class InsuranceController {
     }
 
     /**
-     * 보험 메모 수정 PATCH /users/me/insurances/{insuranceId}
+     * 보험 메모 수정 PATCH /users/me/insurances/{insuranceId}/memo
      */
     @PatchMapping("users/me/insurances/{insuranceId}/memo")
     public ResponseEntity<UpdateMemoResponse> updateMemo(@AuthenticationPrincipal User user,
@@ -39,6 +39,16 @@ public class InsuranceController {
                 .build();
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 보험 삭제 DELETE /users/me/insurances/{insuranceId}
+     */
+    @DeleteMapping("/users/me/insurances/{insuranceId}")
+    public ResponseEntity<Void> deleteInsurance(@AuthenticationPrincipal User user,
+                                                @PathVariable Long insuranceId) {
+        insuranceService.deleteInsurance(user.getUserId(), insuranceId);
+        return ResponseEntity.noContent().build();
     }
 
 }
