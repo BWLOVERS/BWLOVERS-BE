@@ -149,4 +149,18 @@ public class InsuranceService {
     private boolean isBlank(String s) {
         return s == null || s.isBlank();
     }
+
+    /*
+    메모 수정
+     */
+    @Transactional
+    public String updateInsuranceMemo(Long userId, Long insuranceId, String newMemo) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
+        InsuranceProduct insurance = insuranceProductRepository.findById(insuranceId)
+                .orElseThrow(() -> new CustomException(ExceptionCode.INSURANCE_NOT_FOUND));
+
+        insurance.updateMemo(newMemo);
+        return insurance.getMemo();
+    }
 }

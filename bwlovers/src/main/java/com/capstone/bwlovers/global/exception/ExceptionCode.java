@@ -43,7 +43,10 @@ public enum ExceptionCode {
     // Redis
     REDIS_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, ClientExceptionCode.REDIS_SAVE_FAILED,"Redis 데이터 저장 중 오류가 발생했습니다."),
     REDIS_READ_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, ClientExceptionCode.REDIS_READ_FAILED,"Redis 데이터 조회 중 오류가 발생했습니다."),
-    REDIS_CONNECTION_FAILED(HttpStatus.SERVICE_UNAVAILABLE, ClientExceptionCode.REDIS_CONNECTION_FAILED, "Redis 서버에 연결할 수 없습니다.");
+    REDIS_CONNECTION_FAILED(HttpStatus.SERVICE_UNAVAILABLE, ClientExceptionCode.REDIS_CONNECTION_FAILED, "Redis 서버에 연결할 수 없습니다."),
+
+    // Insuracne
+    INSURANCE_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.INSURANCE_NOT_FOUND, "존재하지 않는 보험입니다.");
 
     private final HttpStatus httpStatus;
     private final ClientExceptionCode clientExceptionCode;

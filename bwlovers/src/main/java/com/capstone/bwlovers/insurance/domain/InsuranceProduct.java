@@ -62,4 +62,8 @@ public class InsuranceProduct {
         c.setInsuranceProduct(this);
         this.specialContracts.add(c);
     }
+
+    public void updateMemo(String memo) {
+        this.memo = memo;
+    }
 }
