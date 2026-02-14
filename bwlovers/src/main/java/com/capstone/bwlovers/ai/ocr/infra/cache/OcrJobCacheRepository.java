@@ -2,7 +2,10 @@ package com.capstone.bwlovers.ai.ocr.infra.cache;
 
 import com.capstone.bwlovers.ai.common.cache.AiCacheKeys;
 import com.capstone.bwlovers.ai.ocr.domain.OcrJobCache;
+import com.capstone.bwlovers.global.exception.CustomException;
+import com.capstone.bwlovers.global.exception.ExceptionCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
@@ -14,7 +17,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class OcrJobCacheRepository {
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    @Qualifier("ocrJobCacheRedisTemplate")
+    private final RedisTemplate<String, OcrJobCache> redisTemplate;
 
     @Value("${analysis.ocr.job-ttl-seconds:1800}")
     private long ttlSeconds;
@@ -24,13 +28,20 @@ public class OcrJobCacheRepository {
     }
 
     public void save(OcrJobCache cache) {
-        redisTemplate.opsForValue().set(key(cache.getJobId()), cache, Duration.ofSeconds(ttlSeconds));
+        try {
+            redisTemplate.opsForValue().set(key(cache.getJobId()), cache, Duration.ofSeconds(ttlSeconds));
+        } catch (Exception e) {
+            throw new CustomException(ExceptionCode.REDIS_SAVE_FAILED);
+        }
     }
 
     public Optional<OcrJobCache> find(String jobId) {
-        Object v = redisTemplate.opsForValue().get(key(jobId));
-        if (v == null) return Optional.empty();
-        return Optional.of((OcrJobCache) v);
+        try {
+            OcrJobCache v = redisTemplate.opsForValue().get(key(jobId));
+            return Optional.ofNullable(v);
+        } catch (Exception e) {
+            throw new CustomException(ExceptionCode.REDIS_READ_FAILED);
+        }
     }
 
     public void delete(String jobId) {

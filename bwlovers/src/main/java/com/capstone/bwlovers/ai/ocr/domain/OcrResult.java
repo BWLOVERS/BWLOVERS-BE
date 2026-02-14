@@ -11,19 +11,19 @@ import java.util.List;
 @Builder
 public class OcrResult {
 
-    private String overview;
-    private List<String> keyPoints;
-    private List<String> exclusions;
-    private List<String> claimSteps;
-    private List<Citation> citations;
+    private String oneLineSummary; // 한 줄 요약
+    private String easyExplanation; // 쉽게 풀어쓴 전체 설명
+    private List<String> importantPoints; // 꼭 알아야 할 핵심 포인트
+    private List<String> warnings; // 주의해야 할 부분
+    private List<TermDefinition> terms; // 어려운 용어 풀이
 
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class Citation {
-        private int page;
-        private String excerpt;
+    public static class TermDefinition {
+        private String term;
+        private String meaning;
     }
 }

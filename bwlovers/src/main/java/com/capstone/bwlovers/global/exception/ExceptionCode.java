@@ -35,6 +35,7 @@ public enum ExceptionCode {
     AI_RESULT_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.AI_RESULT_NOT_FOUND, "AI 분석 결과를 찾을 수 없습니다. (만료되었거나 존재하지 않음)"),
     AI_SAVE_EMPTY_SELECTION(HttpStatus.BAD_REQUEST, ClientExceptionCode.AI_SAVE_EMPTY_SELECTION, "저장할 특약이 선택되지 않았습니다."),
     AI_ALREADY_SAVED(HttpStatus.CONFLICT, ClientExceptionCode.AI_ALREADY_SAVED, "이미 저장된 AI 추천 결과입니다."),
+    AI_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, ClientExceptionCode.AI_SERVER_ERROR, "AI 서버 호출 중 오류가 발생했습니다."),
 
     // JSON
     JSON_SERIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, ClientExceptionCode.JSON_SERIALIZATION_FAILED, "데이터 직렬화 처리 중 오류가 발생했습니다."),
@@ -57,7 +58,9 @@ public enum ExceptionCode {
     OCR_EMPTY_FILE(HttpStatus.BAD_REQUEST, ClientExceptionCode.OCR_EMPTY_FILE, "빈 파일이 포함되어 있습니다."),
     OCR_FILE_TOO_LARGE(HttpStatus.BAD_REQUEST, ClientExceptionCode.OCR_FILE_TOO_LARGE, "업로드 파일 용량 제한을 초과했습니다."),
     OCR_UNSUPPORTED_FILE_TYPE(HttpStatus.BAD_REQUEST, ClientExceptionCode.OCR_UNSUPPORTED_FILE_TYPE, "이미지 파일만 업로드할 수 있습니다."),
-    OCR_JOB_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.OCR_JOB_NOT_FOUND, "OCR 작업 결과를 찾을 수 없습니다. (만료되었거나 존재하지 않습니다.)");
+    OCR_JOB_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.OCR_JOB_NOT_FOUND, "OCR 작업 결과를 찾을 수 없습니다. (만료되었거나 존재하지 않습니다.)"),
+    OCR_LOCAL_STORAGE_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, ClientExceptionCode.OCR_LOCAL_STORAGE_NOT_SUPPORTED,"외부 OCR 연동을 위해서는 S3 임시 업로드가 필요합니다.");
+
 
     private final HttpStatus httpStatus;
     private final ClientExceptionCode clientExceptionCode;

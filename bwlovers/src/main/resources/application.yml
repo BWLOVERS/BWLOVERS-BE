@@ -56,7 +56,23 @@ ai:
 
 analysis:
   ocr:
-    job-ttl-seconds: 1800          # Redis TTL 30분
+    job-ttl-seconds: 1800
     max-pages: 10
-    max-file-size-bytes: 10485760  # 10MB
-    local-temp-dir: /tmp/analysis-ocr
+    max-file-size-bytes: 10485760
+
+    s3:
+      prefix: tmp/ocr
+
+    clova:
+      invoke-url: ${CLOVA_OCR_INVOKE_URL}
+      secret: ${CLOVA_OCR_SECRET}
+
+cloud:
+  aws:
+    region: ${AWS_REGION:ap-northeast-2}
+    s3:
+      bucket: ${OCR_TEMP_BUCKET}
+
+openai:
+  api-key: ${OPENAI_API_KEY}
+  model: gpt-4.1-mini

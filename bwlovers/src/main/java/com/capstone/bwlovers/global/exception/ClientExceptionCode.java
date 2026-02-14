@@ -54,5 +54,6 @@ public enum ClientExceptionCode {
     OCR_FILE_TOO_LARGE,
     OCR_UNSUPPORTED_FILE_TYPE,
     OCR_JOB_NOT_FOUND,
+    OCR_LOCAL_STORAGE_NOT_SUPPORTED
 
 }

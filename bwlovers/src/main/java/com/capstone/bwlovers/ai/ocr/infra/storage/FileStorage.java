@@ -6,10 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface FileStorage {
-
     List<OcrPageFileRef> saveJobFiles(String jobId, List<MultipartFile> files);
-
-    byte[] read(String uri);
-
+    String getAccessibleUrl(String uri);
     void deleteJobFiles(String jobId, List<OcrPageFileRef> refs);
 }
