@@ -22,9 +22,9 @@ jobs:
       # Secrets에서 application.yml 복구
       - name: Create application.yml
         run: |
-          mkdir -p ./src/main/resources
-          echo "${{ secrets.APPLICATION_YML }}" > ./src/main/resources/application.yml
-
+          mkdir -p ./bwlovers/src/main/resources
+          echo "${{ secrets.APPLICATION_YML }}" > ./bwlovers/src/main/resources/application.yml
+      
       - name: Build with Gradle
         run: |
           chmod +x ./gradlew
