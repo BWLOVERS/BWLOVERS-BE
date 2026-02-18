@@ -1,8 +1,8 @@
 package com.capstone.bwlovers.ai.recommendation.service;
 
 import com.capstone.bwlovers.ai.common.cache.AiCacheKeys;
-import com.capstone.bwlovers.ai.recommendation.dto.response.AiRecommendationListResponse;
-import com.capstone.bwlovers.ai.recommendation.dto.response.AiRecommendationResponse;
+import com.capstone.bwlovers.ai.recommendation.dto.response.RecommendationListResponse;
+import com.capstone.bwlovers.ai.recommendation.dto.response.RecommendationResponse;
 import com.capstone.bwlovers.global.exception.CustomException;
 import com.capstone.bwlovers.global.exception.ExceptionCode;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -17,15 +17,15 @@ import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
-public class AiResultCacheService {
+public class RecommendationCacheService {
 
     private final StringRedisTemplate stringRedisTemplate;
 
     // JSON 직렬화/역직렬화는 ObjectMapper로 통일
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public void saveList(String resultId, AiRecommendationListResponse list, long ttlSec) {
-        String key = AiCacheKeys.listKey(resultId);
+    public void saveList(String resultId, RecommendationListResponse list, long ttlSec) {
+        String key = AiCacheKeys.recommendListKey(resultId);
         try {
             String json = objectMapper.writeValueAsString(list);
             stringRedisTemplate.opsForValue().set(key, json, Duration.ofSeconds(ttlSec));
@@ -38,8 +38,8 @@ public class AiResultCacheService {
         }
     }
 
-    public void saveDetail(String resultId, String itemId, AiRecommendationResponse detail, long ttlSec) {
-        String key = AiCacheKeys.detailKey(resultId, itemId);
+    public void saveDetail(String resultId, String itemId, RecommendationResponse detail, long ttlSec) {
+        String key = AiCacheKeys.recommendDetailKey(resultId, itemId);
         try {
             String json = objectMapper.writeValueAsString(detail);
             stringRedisTemplate.opsForValue().set(key, json, Duration.ofSeconds(ttlSec));
@@ -52,12 +52,12 @@ public class AiResultCacheService {
         }
     }
 
-    public AiRecommendationListResponse getList(String resultId) {
-        String key = AiCacheKeys.listKey(resultId);
+    public RecommendationListResponse getList(String resultId) {
+        String key = AiCacheKeys.recommendListKey(resultId);
         try {
             String json = stringRedisTemplate.opsForValue().get(key);
             if (json == null) return null;
-            return objectMapper.readValue(json, AiRecommendationListResponse.class);
+            return objectMapper.readValue(json, RecommendationListResponse.class);
         } catch (RedisConnectionFailureException e) {
             throw new CustomException(ExceptionCode.REDIS_CONNECTION_FAILED);
         } catch (JsonProcessingException e) {
@@ -67,12 +67,12 @@ public class AiResultCacheService {
         }
     }
 
-    public AiRecommendationResponse getDetail(String resultId, String itemId) {
-        String key = AiCacheKeys.detailKey(resultId, itemId);
+    public RecommendationResponse getDetail(String resultId, String itemId) {
+        String key = AiCacheKeys.recommendDetailKey(resultId, itemId);
         try {
             String json = stringRedisTemplate.opsForValue().get(key);
             if (json == null) return null;
-            return objectMapper.readValue(json, AiRecommendationResponse.class);
+            return objectMapper.readValue(json, RecommendationResponse.class);
         } catch (RedisConnectionFailureException e) {
             throw new CustomException(ExceptionCode.REDIS_CONNECTION_FAILED);
         } catch (JsonProcessingException e) {

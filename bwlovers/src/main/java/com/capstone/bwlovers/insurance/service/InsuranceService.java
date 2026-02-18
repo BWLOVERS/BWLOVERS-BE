@@ -1,7 +1,7 @@
 package com.capstone.bwlovers.insurance.service;
 
-import com.capstone.bwlovers.ai.recommendation.dto.response.AiRecommendationResponse;
-import com.capstone.bwlovers.ai.recommendation.service.AiResultCacheService;
+import com.capstone.bwlovers.ai.recommendation.dto.response.RecommendationResponse;
+import com.capstone.bwlovers.ai.recommendation.service.RecommendationCacheService;
 import com.capstone.bwlovers.auth.domain.User;
 import com.capstone.bwlovers.auth.repository.UserRepository;
 import com.capstone.bwlovers.global.exception.CustomException;
@@ -32,7 +32,7 @@ public class InsuranceService {
     private final InsuranceProductRepository insuranceProductRepository;
 
     //  캐시에서 상세 가져오기용 (AI 서버 콜 안 하고 Redis 사용)
-    private final AiResultCacheService aiResultCacheService;
+    private final RecommendationCacheService recommendationCacheService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /*
@@ -57,8 +57,8 @@ public class InsuranceService {
         // ============================
         // Redis에서 AI 상세 결과 가져오기
         // ============================
-        AiRecommendationResponse detail =
-                aiResultCacheService.getDetail(request.getResultId(), request.getItemId());
+        RecommendationResponse detail =
+                recommendationCacheService.getDetail(request.getResultId(), request.getItemId());
 
         if (detail == null) {
             // 너가 이미 쓰는 코드: AI_RESULT_NOT_FOUND

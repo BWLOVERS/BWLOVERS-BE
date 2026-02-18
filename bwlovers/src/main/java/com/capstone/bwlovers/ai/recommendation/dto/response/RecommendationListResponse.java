@@ -1,6 +1,6 @@
 package com.capstone.bwlovers.ai.recommendation.dto.response;
 
-import com.capstone.bwlovers.ai.recommendation.dto.request.AiCallbackRequest;
+import com.capstone.bwlovers.ai.recommendation.dto.request.RecommendationCallbackRequest;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
@@ -12,7 +12,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public class AiRecommendationListResponse {
+public class RecommendationListResponse {
 
     @JsonProperty("resultId")
     private String resultId;
@@ -108,9 +108,9 @@ public class AiRecommendationListResponse {
     // =========================================================
     // callback -> 리스트 변환
     // =========================================================
-    public static AiRecommendationListResponse fromCallback(AiCallbackRequest callback) {
+    public static RecommendationListResponse fromCallback(RecommendationCallbackRequest callback) {
 
-        AiRecommendationListResponse res = new AiRecommendationListResponse();
+        RecommendationListResponse res = new RecommendationListResponse();
 
         if (callback == null) {
             res.setItems(Collections.emptyList());
@@ -127,7 +127,7 @@ public class AiRecommendationListResponse {
 
         List<Item> listItems = new ArrayList<>();
 
-        for (AiCallbackRequest.Item it : callback.getItems()) {
+        for (RecommendationCallbackRequest.Item it : callback.getItems()) {
             if (it == null) continue;
 
             Item item = new Item();

@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class FastApiRequest {
+public class RecommendationRequest {
     private PregnancyInfoRequest user_profile;
     private HealthStatusRequest health_status;
 }

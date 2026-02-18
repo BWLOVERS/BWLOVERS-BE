@@ -1,10 +1,10 @@
 package com.capstone.bwlovers.ai.recommendation.controller;
 
-import com.capstone.bwlovers.ai.recommendation.dto.request.AiCallbackRequest;
-import com.capstone.bwlovers.ai.recommendation.dto.response.AiRecommendationListResponse;
-import com.capstone.bwlovers.ai.recommendation.dto.response.AiRecommendationResponse;
-import com.capstone.bwlovers.ai.recommendation.service.AiResultCacheService;
-import com.capstone.bwlovers.ai.recommendation.service.AiService;
+import com.capstone.bwlovers.ai.recommendation.dto.request.RecommendationCallbackRequest;
+import com.capstone.bwlovers.ai.recommendation.dto.response.RecommendationListResponse;
+import com.capstone.bwlovers.ai.recommendation.dto.response.RecommendationResponse;
+import com.capstone.bwlovers.ai.recommendation.service.RecommendationCacheService;
+import com.capstone.bwlovers.ai.recommendation.service.RecommedationService;
 import com.capstone.bwlovers.auth.domain.User;
 import com.capstone.bwlovers.global.exception.CustomException;
 import com.capstone.bwlovers.global.exception.ExceptionCode;
@@ -20,10 +20,10 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/ai")
-public class AiController {
+public class RecommendationController {
 
-    private final AiService aiService;
-    private final AiResultCacheService aiResultCacheService;
+    private final RecommedationService recommedationService;
+    private final RecommendationCacheService recommendationCacheService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -31,8 +31,8 @@ public class AiController {
      * - 기존 그대로: FastAPI 호출해서 resultId 포함된 리스트 받음
      */
     @PostMapping("/recommend")
-    public AiRecommendationListResponse recommendList(@AuthenticationPrincipal User user) {
-        return aiService.requestAiRecommendationList(user.getUserId());
+    public RecommendationListResponse recommendList(@AuthenticationPrincipal User user) {
+        return recommedationService.requestAiRecommendationList(user.getUserId());
     }
 
     /**
@@ -40,9 +40,9 @@ public class AiController {
      * - Redis에서 리스트 형태로 꺼내줌
      */
     @GetMapping("/recommend/{resultId}")
-    public AiRecommendationListResponse getListFromRedis(@AuthenticationPrincipal User user,
-                                                         @PathVariable String resultId) {
-        AiRecommendationListResponse cached = aiResultCacheService.getList(resultId);
+    public RecommendationListResponse getListFromRedis(@AuthenticationPrincipal User user,
+                                                       @PathVariable String resultId) {
+        RecommendationListResponse cached = recommendationCacheService.getList(resultId);
         if (cached == null) {
             throw new CustomException(ExceptionCode.AI_RESULT_NOT_FOUND);
         }
@@ -54,15 +54,15 @@ public class AiController {
      * - Redis에서 상세 꺼내줌 (없으면 기존 FastAPI 조회로 fallback 하고 싶으면 AiService에서 처리 가능함)
      */
     @GetMapping("/results/{resultId}/items/{itemId}")
-    public AiRecommendationResponse getDetail(@AuthenticationPrincipal User user,
-                                              @PathVariable String resultId,
-                                              @PathVariable String itemId) {
+    public RecommendationResponse getDetail(@AuthenticationPrincipal User user,
+                                            @PathVariable String resultId,
+                                            @PathVariable String itemId) {
 
-        AiRecommendationResponse cached = aiResultCacheService.getDetail(resultId, itemId);
+        RecommendationResponse cached = recommendationCacheService.getDetail(resultId, itemId);
         if (cached != null) return cached;
 
         // fallback(선택): 기존 FastAPI 조회 유지
-        return aiService.fetchAiResultDetail(user.getUserId(), resultId, itemId);
+        return recommedationService.fetchAiResultDetail(user.getUserId(), resultId, itemId);
     }
 
     /**
@@ -70,8 +70,8 @@ public class AiController {
      * - 여기서 Redis에 "리스트/상세" 둘 다 저장함
      */
     @PostMapping(path="/callback/recommend", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Void> receive(@RequestBody AiCallbackRequest body) {
-        aiService.cacheCallbackResult(body);
+    public ResponseEntity<Void> receive(@RequestBody RecommendationCallbackRequest body) {
+        recommedationService.cacheCallbackResult(body);
         return ResponseEntity.ok().build();
     }
 
