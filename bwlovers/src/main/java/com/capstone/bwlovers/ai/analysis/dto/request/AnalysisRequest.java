@@ -1,20 +1,15 @@
-package com.capstone.bwlovers.ai.simulation.dto.request;
+package com.capstone.bwlovers.ai.analysis.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
 @Getter
 @NoArgsConstructor
-public class SimulationCallbackRequest {
-
-    @JsonProperty("simulationId")
-    private String simulationId;
-
-    @JsonProperty("expiresInSec")
-    private Integer expiresInSec;
+@AllArgsConstructor
+@Builder
+public class AnalysisRequest {
 
     @JsonProperty("insurance_company")
     private String insuranceCompany;
@@ -28,11 +23,10 @@ public class SimulationCallbackRequest {
     @JsonProperty("question")
     private String question;
 
-    @JsonProperty("result")
-    private String result;
-
     @Getter
     @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
     public static class SpecialContract {
 
         @JsonProperty("contract_name")

@@ -1,6 +1,6 @@
-package com.capstone.bwlovers.ai.simulation.dto.response;
+package com.capstone.bwlovers.ai.analysis.dto.response;
 
-import com.capstone.bwlovers.ai.simulation.dto.request.SimulationCallbackRequest;
+import com.capstone.bwlovers.ai.analysis.dto.request.AnalysisCallbackRequest;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
@@ -9,10 +9,10 @@ import java.util.List;
 
 @Getter
 @Builder
-public class SimulationResultResponse {
+public class AnalysisResultResponse {
 
-    @JsonProperty("simulationId")
-    private String simulationId;
+    @JsonProperty("resultId")
+    private String resultId;
 
     @JsonProperty("insurance_company")
     private String insuranceCompany;
@@ -46,7 +46,7 @@ public class SimulationResultResponse {
         }
     }
 
-    public static SimulationResultResponse fromCallback(SimulationCallbackRequest cb) {
+    public static AnalysisResultResponse fromCallback(AnalysisCallbackRequest cb) {
         List<SpecialContract> mapped = null;
         if (cb.getSpecialContracts() != null) {
             mapped = cb.getSpecialContracts().stream()
@@ -54,8 +54,8 @@ public class SimulationResultResponse {
                     .toList();
         }
 
-        return SimulationResultResponse.builder()
-                .simulationId(cb.getSimulationId())
+        return AnalysisResultResponse.builder()
+                .resultId(cb.getResultId())
                 .insuranceCompany(cb.getInsuranceCompany())
                 .productName(cb.getProductName())
                 .specialContracts(mapped)
