@@ -2,6 +2,7 @@ package com.capstone.bwlovers.ai.analysis.service;
 
 import com.capstone.bwlovers.ai.analysis.dto.request.AnalysisCallbackRequest;
 import com.capstone.bwlovers.ai.analysis.dto.request.AnalysisRequest;
+import com.capstone.bwlovers.ai.analysis.dto.request.SimulationRunRequest;
 import com.capstone.bwlovers.ai.analysis.dto.response.AnalysisCreateResponse;
 import com.capstone.bwlovers.ai.analysis.dto.response.AnalysisResultResponse;
 import com.capstone.bwlovers.auth.repository.UserRepository;
@@ -11,7 +12,8 @@ import com.capstone.bwlovers.insurance.domain.InsuranceProduct;
 import com.capstone.bwlovers.insurance.domain.SpecialContract;
 import com.capstone.bwlovers.insurance.repository.InsuranceProductRepository;
 import com.capstone.bwlovers.insurance.repository.SpecialContractRepository;
-import com.capstone.bwlovers.ai.analysis.dto.request.SimulationRunRequest;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,14 +38,8 @@ public class AnalysisService {
     private final InsuranceProductRepository insuranceProductRepository;
     private final SpecialContractRepository specialContractRepository;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
-    /**
-     * 시뮬레이션 요청 (ID 기반)
-     * - 프론트는 insuranceId, selectedContractIds, question만 보냄
-     * - 백엔드가 DB에서 보험/특약(pageNumber 포함)을 가져와 AI 요청(AnalysisRequest)로 변환함
-     * - AI가 동기로 결과를 주면 즉시 Redis 저장함
-     */
     public AnalysisCreateResponse requestSimulation(Long userId, SimulationRunRequest runReq) {
 
         userRepository.findById(userId)
@@ -51,7 +47,6 @@ public class AnalysisService {
 
         validateRunRequest(runReq);
 
-        // 1) 보험 조회 + 본인 소유 검증
         InsuranceProduct insurance = insuranceProductRepository.findById(runReq.getInsuranceId())
                 .orElseThrow(() -> new CustomException(ExceptionCode.INSURANCE_NOT_FOUND));
 
@@ -59,20 +54,20 @@ public class AnalysisService {
             throw new CustomException(ExceptionCode.USER_NOT_FOUND);
         }
 
-        // 2) 선택된 특약 조회(보험 범위로 묶어서 안전하게)
         List<Long> contractIds = runReq.getSelectedContractIds();
-        List<SpecialContract> selectedContracts = specialContractRepository.findAllByInsuranceProduct_InsuranceIdAndContractIdIn(runReq.getInsuranceId(), contractIds);
+        List<SpecialContract> selectedContracts =
+                specialContractRepository.findAllByInsuranceProduct_InsuranceIdAndContractIdIn(
+                        runReq.getInsuranceId(), contractIds
+                );
 
         if (selectedContracts == null || selectedContracts.isEmpty()) {
             throw new CustomException(ExceptionCode.AI_SAVE_EMPTY_SELECTION);
         }
 
-        // 보안/정합성 체크: 요청한 개수와 조회된 개수가 다르면 잘못된 contractId 포함임
         if (selectedContracts.size() != contractIds.size()) {
             throw new CustomException(ExceptionCode.AI_INVALID_REQUEST);
         }
 
-        // 3) AI 요청 DTO(AnalysisRequest) 조립: contract_name + page_number 자동 포함
         List<AnalysisRequest.SpecialContract> aiContracts = selectedContracts.stream()
                 .map(sc -> AnalysisRequest.SpecialContract.builder()
                         .contractName(sc.getContractName())
@@ -87,7 +82,6 @@ public class AnalysisService {
                 .question(runReq.getQuestion())
                 .build();
 
-        // 4) AI 호출
         String raw = aiWebClient.post()
                 .uri("/ai/simulation")
                 .bodyValue(aiReq)
@@ -108,17 +102,14 @@ public class AnalysisService {
             throw new CustomException(ExceptionCode.AI_SERVER_5XX);
         }
 
-        String simulationId = tryParseAndCacheIfPossible(raw);
-        if (isBlank(simulationId)) {
+        String resultId = tryParseAndCacheIfPossible(raw);
+        if (isBlank(resultId)) {
             throw new CustomException(ExceptionCode.AI_SERVER_5XX);
         }
 
-        return AnalysisCreateResponse.of(simulationId);
+        return AnalysisCreateResponse.of(resultId);
     }
 
-    /**
-     * AI callback 결과를 Redis에 저장
-     */
     public void cacheCallbackResult(AnalysisCallbackRequest callback) {
 
         if (callback == null || isBlank(callback.getResultId())) {
@@ -130,12 +121,9 @@ public class AnalysisService {
         AnalysisResultResponse result = AnalysisResultResponse.fromCallback(callback);
         analysisCacheService.saveResult(callback.getResultId(), result, ttlSec);
 
-        log.info("[SIMULATION CALLBACK CACHED] simulationId={}, ttlSec={}", callback.getResultId(), ttlSec);
+        log.info("[SIMULATION CALLBACK CACHED] resultId={}, ttlSec={}", callback.getResultId(), ttlSec);
     }
 
-    /**
-     * Redis에서 시뮬레이션 결과 조회
-     */
     public AnalysisResultResponse getSimulationResult(String resultId) {
         if (isBlank(resultId)) {
             throw new CustomException(ExceptionCode.AI_INVALID_REQUEST);
@@ -162,8 +150,11 @@ public class AnalysisService {
     }
 
     private String tryParseAndCacheIfPossible(String raw) {
+        ObjectMapper lenient = objectMapper.copy()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
         try {
-            AnalysisCallbackRequest cb = objectMapper.readValue(raw, AnalysisCallbackRequest.class);
+            AnalysisCallbackRequest cb = lenient.readValue(raw, AnalysisCallbackRequest.class);
             if (!isBlank(cb.getResultId())) {
                 if (!isBlank(cb.getResult())) {
                     cacheCallbackResult(cb);
@@ -171,11 +162,11 @@ public class AnalysisService {
                 return cb.getResultId();
             }
         } catch (Exception ignore) {
-
+            // fallback 시도함
         }
 
         try {
-            SimulationAck ack = objectMapper.readValue(raw, SimulationAck.class);
+            SimulationAck ack = lenient.readValue(raw, SimulationAck.class);
             return ack.resultId;
         } catch (Exception e) {
             log.error("[AI /ai/simulation PARSE ERROR] raw={}", raw, e);
@@ -191,6 +182,7 @@ public class AnalysisService {
         return s == null ? "" : s;
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private static class SimulationAck {
         public String resultId;
         public Integer expiresInSec;
