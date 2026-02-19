@@ -1,9 +1,9 @@
 package com.capstone.bwlovers.ai.recommendation.service;
 
-import com.capstone.bwlovers.ai.recommendation.dto.request.AiCallbackRequest;
-import com.capstone.bwlovers.ai.recommendation.dto.request.FastApiRequest;
-import com.capstone.bwlovers.ai.recommendation.dto.response.AiRecommendationListResponse;
-import com.capstone.bwlovers.ai.recommendation.dto.response.AiRecommendationResponse;
+import com.capstone.bwlovers.ai.recommendation.dto.request.RecommendationCallbackRequest;
+import com.capstone.bwlovers.ai.recommendation.dto.request.RecommendationRequest;
+import com.capstone.bwlovers.ai.recommendation.dto.response.RecommendationListResponse;
+import com.capstone.bwlovers.ai.recommendation.dto.response.RecommendationResponse;
 import com.capstone.bwlovers.ai.recommendation.dto.response.FastApiResponse;
 import com.capstone.bwlovers.auth.domain.User;
 import com.capstone.bwlovers.auth.repository.UserRepository;
@@ -28,7 +28,7 @@ import java.time.Duration;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AiService {
+public class RecommendationService {
 
     private static final long DEFAULT_TTL_SEC = 600L; // 10분
 
@@ -37,14 +37,14 @@ public class AiService {
     private final HealthStatusRepository healthStatusRepository;
 
     private final WebClient aiWebClient;
-    private final AiResultCacheService aiResultCacheService;
+    private final RecommendationCacheService recommendationCacheService;
 
     private final InsuranceProductRepository insuranceProductRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * (기존 A안) 결과 전체를 바로 받는 방식 - 유지함(선택)
+     * 결과 전체를 바로 받는 방식
      */
     public FastApiResponse requestAiRecommendation(Long userId) {
         User user = userRepository.findById(userId)
@@ -54,7 +54,7 @@ public class AiService {
         HealthStatus healthStatus = healthStatusRepository.findByUser(user)
                 .orElseThrow(() -> new CustomException(ExceptionCode.HEALTH_STATUS_NOT_FOUND));
 
-        FastApiRequest dto = toFastApiRequest(pregnancyInfo, healthStatus);
+        RecommendationRequest dto = toFastApiRequest(pregnancyInfo, healthStatus);
 
         return aiWebClient.post()
                 .uri("/ai/recommend")
@@ -79,7 +79,7 @@ public class AiService {
      * 추천 리스트 조회
      * - FastAPI 응답(list)을 Redis에 저장
      */
-    public AiRecommendationListResponse requestAiRecommendationList(Long userId) {
+    public RecommendationListResponse requestAiRecommendationList(Long userId) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
@@ -88,7 +88,7 @@ public class AiService {
         HealthStatus healthStatus = healthStatusRepository.findByUser(user)
                 .orElseThrow(() -> new CustomException(ExceptionCode.HEALTH_STATUS_NOT_FOUND));
 
-        FastApiRequest dto = toFastApiRequest(pregnancyInfo, healthStatus);
+        RecommendationRequest dto = toFastApiRequest(pregnancyInfo, healthStatus);
 
         String raw = aiWebClient.post()
                 .uri("/ai/recommend") // FastAPI: 리스트 + resultId 반환해야 함
@@ -106,9 +106,9 @@ public class AiService {
 
         log.info("[AI /ai/recommend RAW RESPONSE] {}", raw);
 
-        AiRecommendationListResponse list;
+        RecommendationListResponse list;
         try {
-            list = objectMapper.readValue(raw, AiRecommendationListResponse.class);
+            list = objectMapper.readValue(raw, RecommendationListResponse.class);
         } catch (Exception e) {
             log.error("[AI /ai/recommend PARSE ERROR] raw={}", raw, e);
             throw new CustomException(ExceptionCode.AI_SERVER_5XX);
@@ -124,7 +124,7 @@ public class AiService {
         long ttlSec = (list.getExpiresInSec() == null ? DEFAULT_TTL_SEC : list.getExpiresInSec());
 
         // 1) 리스트 저장
-        aiResultCacheService.saveList(list.getResultId(), list, ttlSec);
+        recommendationCacheService.saveList(list.getResultId(), list, ttlSec);
 
         // 2) itemId별 상세 캐시 저장
         //    (현재는 list 응답에 상세 필드가 포함되어 있으므로 fromListItem이 제대로 채워줄 수 있음)
@@ -132,8 +132,8 @@ public class AiService {
             for (var item : list.getItems()) {
                 if (item == null || isBlank(item.getItemId())) continue;
 
-                AiRecommendationResponse detail = AiRecommendationResponse.fromListItem(item);
-                aiResultCacheService.saveDetail(list.getResultId(), item.getItemId(), detail, ttlSec);
+                RecommendationResponse detail = RecommendationResponse.fromListItem(item);
+                recommendationCacheService.saveDetail(list.getResultId(), item.getItemId(), detail, ttlSec);
             }
         }
 
@@ -144,7 +144,7 @@ public class AiService {
      * 결과 상세 보기
      * GET /ai/results/{resultId}/items/{itemId}
      */
-    public AiRecommendationResponse fetchAiResultDetail(Long userId, String resultId, String itemId) {
+    public RecommendationResponse fetchAiResultDetail(Long userId, String resultId, String itemId) {
 
         userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
@@ -156,7 +156,7 @@ public class AiService {
         log.info("[FETCH DETAIL] Request ResultId: {}, ItemId: {}", resultId, itemId);
 
         // 1) Redis 캐시 먼저 확인
-        AiRecommendationResponse cached = aiResultCacheService.getDetail(resultId, itemId);
+        RecommendationResponse cached = recommendationCacheService.getDetail(resultId, itemId);
         if (cached != null) {
             log.info("[FETCH DETAIL] Redis cache HIT. itemId={}", itemId);
             return cached;
@@ -165,7 +165,7 @@ public class AiService {
         // 2) Redis에 없으면 FastAPI로 fallback
         log.info("[FETCH DETAIL] Redis cache MISS -> try FastAPI. resultId={}", resultId);
 
-        AiRecommendationResponse fresh = aiWebClient.get()
+        RecommendationResponse fresh = aiWebClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/ai/results/{resultId}/items/{itemId}")
                         .build(resultId, itemId))
@@ -174,13 +174,13 @@ public class AiService {
                         resp -> Mono.error(new CustomException(ExceptionCode.AI_RESULT_NOT_FOUND)))
                 .onStatus(s -> s.is5xxServerError(),
                         resp -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX)))
-                .bodyToMono(AiRecommendationResponse.class)
+                .bodyToMono(RecommendationResponse.class)
                 .timeout(Duration.ofSeconds(10))
                 .block();
 
         // 3) FastAPI에서 가져온 데이터 캐시에 저장
         if (fresh != null) {
-            aiResultCacheService.saveDetail(resultId, itemId, fresh, DEFAULT_TTL_SEC);
+            recommendationCacheService.saveDetail(resultId, itemId, fresh, DEFAULT_TTL_SEC);
         }
 
         return fresh;
@@ -189,7 +189,7 @@ public class AiService {
     /**
      * AI callback 결과를 Redis에 저장함
      */
-    public void cacheCallbackResult(AiCallbackRequest callback) {
+    public void cacheCallbackResult(RecommendationCallbackRequest callback) {
 
         if (callback == null || isBlank(callback.getResultId())) {
             throw new CustomException(ExceptionCode.AI_INVALID_REQUEST);
@@ -198,17 +198,17 @@ public class AiService {
         long ttlSec = (callback.getExpiresInSec() == null ? DEFAULT_TTL_SEC : callback.getExpiresInSec());
 
         // 1) 리스트 생성 후 저장
-        AiRecommendationListResponse list = AiRecommendationListResponse.fromCallback(callback);
+        RecommendationListResponse list = RecommendationListResponse.fromCallback(callback);
         // fromCallback 안에서 이미 normalizeCounts 호출됨(안전)
-        aiResultCacheService.saveList(callback.getResultId(), list, ttlSec);
+        recommendationCacheService.saveList(callback.getResultId(), list, ttlSec);
 
         // 2) 상세(itemId별) 저장
         if (callback.getItems() != null) {
             for (var item : callback.getItems()) {
                 if (item == null || isBlank(item.getItemId())) continue;
 
-                AiRecommendationResponse detail = AiRecommendationResponse.fromCallbackItem(item);
-                aiResultCacheService.saveDetail(callback.getResultId(), item.getItemId(), detail, ttlSec);
+                RecommendationResponse detail = RecommendationResponse.fromCallbackItem(item);
+                recommendationCacheService.saveDetail(callback.getResultId(), item.getItemId(), detail, ttlSec);
             }
         }
 
@@ -222,10 +222,10 @@ public class AiService {
     // private
     // =========================================================
 
-    private FastApiRequest toFastApiRequest(PregnancyInfo pregnancyInfo, HealthStatus healthStatus) {
+    private RecommendationRequest toFastApiRequest(PregnancyInfo pregnancyInfo, HealthStatus healthStatus) {
         PregnancyInfoRequest pregnancyInfoRequest = PregnancyInfoRequest.from(pregnancyInfo);
         HealthStatusRequest healthStatusRequest = HealthStatusRequest.from(healthStatus);
-        return new FastApiRequest(pregnancyInfoRequest, healthStatusRequest);
+        return new RecommendationRequest(pregnancyInfoRequest, healthStatusRequest);
     }
 
     private boolean isBlank(String s) {

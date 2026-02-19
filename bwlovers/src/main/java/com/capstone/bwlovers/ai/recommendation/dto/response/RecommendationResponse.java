@@ -1,6 +1,6 @@
 package com.capstone.bwlovers.ai.recommendation.dto.response;
 
-import com.capstone.bwlovers.ai.recommendation.dto.request.AiCallbackRequest;
+import com.capstone.bwlovers.ai.recommendation.dto.request.RecommendationCallbackRequest;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,7 +9,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public class AiRecommendationResponse {
+public class RecommendationResponse {
 
     @JsonProperty("itemId")
     private String itemId;
@@ -76,9 +76,9 @@ public class AiRecommendationResponse {
     /**
      * callback item -> 상세 응답 변환
      */
-    public static AiRecommendationResponse fromCallbackItem(AiCallbackRequest.Item item) {
+    public static RecommendationResponse fromCallbackItem(RecommendationCallbackRequest.Item item) {
 
-        AiRecommendationResponse res = new AiRecommendationResponse();
+        RecommendationResponse res = new RecommendationResponse();
         res.setItemId(item.getItemId());
         res.setInsuranceCompany(item.getInsuranceCompany());
         res.setProductName(item.getProductName());
@@ -89,9 +89,9 @@ public class AiRecommendationResponse {
 
         // special_contracts 변환
         if (item.getSpecialContracts() != null) {
-            List<AiRecommendationResponse.SpecialContract> contracts = item.getSpecialContracts().stream()
+            List<RecommendationResponse.SpecialContract> contracts = item.getSpecialContracts().stream()
                     .map(sc -> {
-                        AiRecommendationResponse.SpecialContract c = new AiRecommendationResponse.SpecialContract();
+                        RecommendationResponse.SpecialContract c = new RecommendationResponse.SpecialContract();
                         c.setContractName(sc.getContractName());
                         c.setContractDescription(sc.getContractDescription());
                         c.setContractRecommendationReason(sc.getContractRecommendationReason());
@@ -105,9 +105,9 @@ public class AiRecommendationResponse {
 
         // evidence_sources 변환
         if (item.getEvidenceSources() != null) {
-            List<AiRecommendationResponse.EvidenceSource> sources = item.getEvidenceSources().stream()
+            List<RecommendationResponse.EvidenceSource> sources = item.getEvidenceSources().stream()
                     .map(es -> {
-                        AiRecommendationResponse.EvidenceSource e = new AiRecommendationResponse.EvidenceSource();
+                        RecommendationResponse.EvidenceSource e = new RecommendationResponse.EvidenceSource();
                         e.setPageNumber(es.getPageNumber());
                         e.setTextSnippet(es.getTextSnippet());
                         return e;
@@ -123,9 +123,9 @@ public class AiRecommendationResponse {
      * 리스트 item -> "임시 상세" 변환
      */
     // 리스트 item -> 상세 응답 변환 (리스트에 상세가 내려오면 그대로 채움)
-    public static AiRecommendationResponse fromListItem(AiRecommendationListResponse.Item item) {
+    public static RecommendationResponse fromListItem(RecommendationListResponse.Item item) {
 
-        AiRecommendationResponse res = new AiRecommendationResponse();
+        RecommendationResponse res = new RecommendationResponse();
         res.setItemId(item.getItemId());
         res.setInsuranceCompany(item.getInsuranceCompany());
         res.setProductName(item.getProductName());
@@ -136,9 +136,9 @@ public class AiRecommendationResponse {
 
         // special_contracts (리스트에 있는 걸 그대로 상세에 매핑함)
         if (item.getSpecialContracts() != null) {
-            List<AiRecommendationResponse.SpecialContract> contracts = item.getSpecialContracts().stream()
+            List<RecommendationResponse.SpecialContract> contracts = item.getSpecialContracts().stream()
                     .map(sc -> {
-                        AiRecommendationResponse.SpecialContract c = new AiRecommendationResponse.SpecialContract();
+                        RecommendationResponse.SpecialContract c = new RecommendationResponse.SpecialContract();
                         c.setContractName(sc.getContractName());
                         c.setContractDescription(sc.getContractDescription());
                         c.setContractRecommendationReason(sc.getContractRecommendationReason());
@@ -152,9 +152,9 @@ public class AiRecommendationResponse {
 
         // evidence_sources (리스트에 있는 걸 그대로 상세에 매핑함)
         if (item.getEvidenceSources() != null) {
-            List<AiRecommendationResponse.EvidenceSource> sources = item.getEvidenceSources().stream()
+            List<RecommendationResponse.EvidenceSource> sources = item.getEvidenceSources().stream()
                     .map(es -> {
-                        AiRecommendationResponse.EvidenceSource e = new AiRecommendationResponse.EvidenceSource();
+                        RecommendationResponse.EvidenceSource e = new RecommendationResponse.EvidenceSource();
                         e.setPageNumber(es.getPageNumber());
                         e.setTextSnippet(es.getTextSnippet());
                         return e;

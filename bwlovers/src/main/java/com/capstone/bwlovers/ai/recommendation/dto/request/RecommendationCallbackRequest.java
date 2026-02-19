@@ -9,7 +9,7 @@ import java.util.List;
 
 @Getter
 @NoArgsConstructor
-public class AiCallbackRequest {
+public class RecommendationCallbackRequest {
 
     @JsonProperty("resultId")
     private String resultId;
