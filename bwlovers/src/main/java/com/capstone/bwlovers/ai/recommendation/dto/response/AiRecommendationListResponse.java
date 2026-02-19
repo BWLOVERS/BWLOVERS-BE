@@ -9,9 +9,11 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class AiRecommendationListResponse {
 
     @JsonProperty("resultId")
@@ -23,11 +25,13 @@ public class AiRecommendationListResponse {
     @JsonProperty("items")
     private List<Item> items;
 
+    @JsonProperty("rag_metadata")
+    private Map<String, Object> ragMetadata;
+
     @Getter
     @Setter
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Item {
-
         @JsonProperty("itemId")
         private String itemId;
 
@@ -58,17 +62,9 @@ public class AiRecommendationListResponse {
         @JsonProperty("special_contract_count")
         private Integer specialContractCount = 0;
 
-        /**
-         * 응답 직전에 count를 무조건 현재 specialContracts 기준으로 보정함
-         * - FastAPI가 special_contract_count를 잘못 주거나(0), 안 주거나(null) 상관없이
-         * - special_contracts가 있으면 size로 맞춰짐
-         */
         public void normalizeCounts() {
-            if (this.specialContracts == null) {
-                this.specialContractCount = 0;
-            } else {
-                this.specialContractCount = this.specialContracts.size();
-            }
+            if (this.specialContracts == null) this.specialContractCount = 0;
+            else this.specialContractCount = this.specialContracts.size();
         }
     }
 
@@ -76,7 +72,6 @@ public class AiRecommendationListResponse {
     @Setter
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class SpecialContract {
-
         @JsonProperty("contract_name")
         private String contractName;
 
@@ -97,7 +92,6 @@ public class AiRecommendationListResponse {
     @Setter
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class EvidenceSource {
-
         @JsonProperty("page_number")
         private Integer pageNumber;
 
@@ -105,9 +99,6 @@ public class AiRecommendationListResponse {
         private String textSnippet;
     }
 
-    // =========================================================
-    // callback -> 리스트 변환
-    // =========================================================
     public static AiRecommendationListResponse fromCallback(AiCallbackRequest callback) {
 
         AiRecommendationListResponse res = new AiRecommendationListResponse();
@@ -139,7 +130,6 @@ public class AiRecommendationListResponse {
             item.setMonthlyCost(it.getMonthlyCost());
             item.setInsuranceRecommendationReason(it.getInsuranceRecommendationReason());
 
-            // special_contracts 변환
             if (it.getSpecialContracts() != null && !it.getSpecialContracts().isEmpty()) {
                 List<SpecialContract> contracts = it.getSpecialContracts().stream()
                         .map(sc -> {
@@ -157,7 +147,6 @@ public class AiRecommendationListResponse {
                 item.setSpecialContracts(Collections.emptyList());
             }
 
-            // evidence_sources 변환
             if (it.getEvidenceSources() != null && !it.getEvidenceSources().isEmpty()) {
                 List<EvidenceSource> sources = it.getEvidenceSources().stream()
                         .map(es -> {
@@ -172,9 +161,7 @@ public class AiRecommendationListResponse {
                 item.setEvidenceSources(Collections.emptyList());
             }
 
-            // count는 무조건 현재 specialContracts 기준으로 보정
             item.normalizeCounts();
-
             listItems.add(item);
         }
 
@@ -182,10 +169,6 @@ public class AiRecommendationListResponse {
         return res;
     }
 
-    /**
-     * FastAPI 응답을 그대로 파싱해서 받은 경우에도 count를 보정할 수 있게 유틸 제공함
-     * - Service에서 list 파싱 후 이 메서드 호출하면 됨
-     */
     public void normalizeAllCounts() {
         if (this.items == null) return;
         for (Item it : this.items) {

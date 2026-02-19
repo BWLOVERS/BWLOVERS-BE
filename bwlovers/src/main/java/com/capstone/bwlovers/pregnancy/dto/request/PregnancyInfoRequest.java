@@ -21,7 +21,7 @@ public class PregnancyInfoRequest {
     private LocalDate expectedDate;
     private Boolean isMultiplePregnancy;
     private Integer miscarriageHistory;
-    private String jobName;;
+    private String jobName;
 
     public static PregnancyInfoRequest from(PregnancyInfo pregnancyInfo) {
         return PregnancyInfoRequest.builder()
