@@ -28,7 +28,7 @@ import java.time.Duration;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class RecommedationService {
+public class RecommendationService {
 
     private static final long DEFAULT_TTL_SEC = 600L; // 10분
 

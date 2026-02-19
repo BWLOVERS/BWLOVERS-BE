@@ -4,7 +4,7 @@ import com.capstone.bwlovers.ai.recommendation.dto.request.RecommendationCallbac
 import com.capstone.bwlovers.ai.recommendation.dto.response.RecommendationListResponse;
 import com.capstone.bwlovers.ai.recommendation.dto.response.RecommendationResponse;
 import com.capstone.bwlovers.ai.recommendation.service.RecommendationCacheService;
-import com.capstone.bwlovers.ai.recommendation.service.RecommedationService;
+import com.capstone.bwlovers.ai.recommendation.service.RecommendationService;
 import com.capstone.bwlovers.auth.domain.User;
 import com.capstone.bwlovers.global.exception.CustomException;
 import com.capstone.bwlovers.global.exception.ExceptionCode;
@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/ai")
 public class RecommendationController {
 
-    private final RecommedationService recommedationService;
+    private final RecommendationService recommendationService;
     private final RecommendationCacheService recommendationCacheService;
     private final ObjectMapper objectMapper;
 
@@ -32,7 +32,7 @@ public class RecommendationController {
      */
     @PostMapping("/recommend")
     public RecommendationListResponse recommendList(@AuthenticationPrincipal User user) {
-        return recommedationService.requestAiRecommendationList(user.getUserId());
+        return recommendationService.requestAiRecommendationList(user.getUserId());
     }
 
     /**
@@ -62,7 +62,7 @@ public class RecommendationController {
         if (cached != null) return cached;
 
         // fallback(선택): 기존 FastAPI 조회 유지
-        return recommedationService.fetchAiResultDetail(user.getUserId(), resultId, itemId);
+        return recommendationService.fetchAiResultDetail(user.getUserId(), resultId, itemId);
     }
 
     /**
@@ -71,7 +71,7 @@ public class RecommendationController {
      */
     @PostMapping(path="/callback/recommend", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> receive(@RequestBody RecommendationCallbackRequest body) {
-        recommedationService.cacheCallbackResult(body);
+        recommendationService.cacheCallbackResult(body);
         return ResponseEntity.ok().build();
     }
 
