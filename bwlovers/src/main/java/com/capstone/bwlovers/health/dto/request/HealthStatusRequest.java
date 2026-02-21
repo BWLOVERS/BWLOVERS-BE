@@ -15,7 +15,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class HealthStatusRequest {
-    private Long userId;
 
     private List<PastDiseaseItem> pastDiseases;
     private List<ChronicDiseaseItem> chronicDiseases;
@@ -23,7 +22,6 @@ public class HealthStatusRequest {
 
     public static HealthStatusRequest from(HealthStatus healthStatus) {
         return HealthStatusRequest.builder()
-                .userId(healthStatus.getUser().getUserId())
                 .pastDiseases(
                         healthStatus.getPastDiseases().stream()
                                 .map(p -> PastDiseaseItem.builder()
