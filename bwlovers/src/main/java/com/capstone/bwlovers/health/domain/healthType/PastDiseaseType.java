@@ -15,5 +15,5 @@ public enum PastDiseaseType {
     DEPRESSION,             // 우울증
     ANXIETY_DISORDER,       // 불안장애
 
-    ETC                     // 기타
+    NONE                    // 해당 없음
 }

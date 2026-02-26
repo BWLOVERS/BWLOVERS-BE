@@ -21,23 +21,22 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/auth")
 public class AuthController {
 
     private final AuthService authService;
 
-    @GetMapping("/redirect/naver")
+    @GetMapping("/auth/redirect/naver")
     public ResponseEntity<Map<String, String>> redirectToNaver() {
         String uri = authService.getNaverRedirectUri();
         return ResponseEntity.ok(Map.of("redirectUri", uri));
     }
 
-    @PostMapping("/login")
+    @PostMapping("/auth/login")
     public ResponseEntity<TokenResponse> login(@RequestBody @Valid NaverLoginRequest request) {
         return ResponseEntity.ok(authService.loginWithNaver(request.getCode(), request.getState()));
     }
 
-    @PostMapping("/refresh")
+    @PostMapping("/auth/refresh")
     public TokenResponse refresh(@RequestBody @Valid RefreshRequest request) {
         return authService.refreshTokens(request.getRefreshToken());
     }
@@ -45,7 +44,7 @@ public class AuthController {
     /*
     네이버 로그인 정보 수정 (닉네임, 프로필 사진만)
      */
-    @PatchMapping("/naver")
+    @PatchMapping("/users/naver")
     public ResponseEntity<UpdateNaverResponse> updateNaver(@AuthenticationPrincipal OAuth2User principal,
                                                            @RequestBody UpdateNaverRequest request) {
         Long userId = principal.getAttribute("userId");
@@ -56,7 +55,7 @@ public class AuthController {
     /*
     회원 탈퇴
      */
-    @DeleteMapping("/withdraw")
+    @DeleteMapping("/users/withdraw")
     public ResponseEntity<Void> withdraw(Authentication authentication) {
         authService.withdraw(authentication);
         return ResponseEntity.noContent().build();

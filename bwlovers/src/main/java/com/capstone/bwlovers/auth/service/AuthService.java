@@ -42,13 +42,8 @@ public class AuthService {
     @Value("${spring.security.oauth2.client.registration.naver.redirect-uri}")
     private String redirectUri;
 
+    @Transactional
     public TokenResponse loginWithNaver(String code, String state) {
-
-        System.out.println("====== 환경변수 체크 ======");
-        System.out.println("clientId: " + clientId);
-        System.out.println("clientSecret: " + clientSecret);
-        System.out.println("redirectUri: " + redirectUri);
-        System.out.println("==========================");
 
         // 네이버 토큰 요청
         NaverTokenResponse tokenRes = oAuthClient.requestToken(code, state, clientId, clientSecret, redirectUri);
@@ -58,27 +53,34 @@ public class AuthService {
         NaverUserInfoResponse userInfoRes = oAuthClient.requestUserInfo(naverAccessToken);
         String providerId = userInfoRes.getResponse().getId();
 
-        // DB upsert (토큰 업데이트 포함)
         User user = userRepository.findByProviderAndProviderId(OAuthProvider.NAVER, providerId)
-                .map(u -> {
-                    u.updateNaverToken(naverAccessToken); // 기존 유저면 토큰만 갱신
-                    return u;
-                })
-                .orElseGet(() -> userRepository.save(
-                        User.builder()
-                                .provider(OAuthProvider.NAVER)
-                                .providerId(providerId)
-                                .email(userInfoRes.getResponse().getEmail())
-                                .username(userInfoRes.getResponse().getName())
-                                .phone(userInfoRes.getResponse().getMobile())
-                                .profileImageUrl(userInfoRes.getResponse().getProfileImageUrl())
-                                .naverAccessToken(naverAccessToken) // 신규 유저 토큰 저장
-                                .build()
-                ));
+                .orElse(null);
 
-        // 서비스 JWT 발급
+        boolean isNew;
+
+        if (user == null) {
+            isNew = true;
+            user = userRepository.save(
+                    User.builder()
+                            .provider(OAuthProvider.NAVER)
+                            .providerId(providerId)
+                            .email(userInfoRes.getResponse().getEmail())
+                            .username(userInfoRes.getResponse().getName())
+                            .phone(userInfoRes.getResponse().getMobile())
+                            .profileImageUrl(userInfoRes.getResponse().getProfileImageUrl())
+                            .naverAccessToken(naverAccessToken)
+                            .build()
+            );
+        } else {
+            isNew = false;
+            user.updateNaverToken(naverAccessToken);
+        }
+
         String subject = user.getProvider().name() + ":" + user.getProviderId();
-        return createTokenResponse(subject);
+        TokenResponse response = createTokenResponse(subject);
+
+        response.setNew(isNew);
+        return response;
     }
 
     public TokenResponse refreshTokens(String refreshToken) {

@@ -6,5 +6,5 @@ public enum ChronicDiseaseType {
     ASTHMA,                 // 천식
     LUPUS,                  // 루푸스
     RHEUMATOID_ARTHRITIS,   // 류마티스
-    ETC                     // 기타
+    NONE                    // 해당 없음
 }
