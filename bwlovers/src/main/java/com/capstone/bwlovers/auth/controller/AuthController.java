@@ -6,6 +6,7 @@ import com.capstone.bwlovers.auth.dto.request.RefreshRequest;
 import com.capstone.bwlovers.auth.dto.request.UpdateNaverRequest;
 import com.capstone.bwlovers.auth.dto.response.TokenResponse;
 import com.capstone.bwlovers.auth.dto.response.UpdateNaverResponse;
+import com.capstone.bwlovers.auth.dto.response.UserInfoResponse;
 import com.capstone.bwlovers.auth.service.AuthService;
 import com.capstone.bwlovers.global.exception.CustomException;
 import com.capstone.bwlovers.global.exception.ExceptionCode;
@@ -42,14 +43,19 @@ public class AuthController {
     }
 
     /*
+    네이버 로그인 정보 조회 (프로필 사진, 닉네임, 이메일, 전화번호)
+     */
+    @GetMapping("/users/me")
+    public ResponseEntity<UserInfoResponse> getNaverInfo(Authentication authentication) {
+        return ResponseEntity.ok(authService.getNaver(authentication));
+    }
+
+    /*
     네이버 로그인 정보 수정 (닉네임, 프로필 사진만)
      */
-    @PatchMapping("/users/naver")
-    public ResponseEntity<UpdateNaverResponse> updateNaver(@AuthenticationPrincipal OAuth2User principal,
-                                                           @RequestBody UpdateNaverRequest request) {
-        Long userId = principal.getAttribute("userId");
-        UpdateNaverResponse response = authService.updateNaver(userId, request);
-        return ResponseEntity.ok(response);
+    @PatchMapping("/users/me")
+    public ResponseEntity<UpdateNaverResponse> updateNaver(Authentication authentication, @RequestBody UpdateNaverRequest request) {
+        return ResponseEntity.ok(authService.updateNaver(authentication, request));
     }
 
     /*

@@ -3,10 +3,7 @@ package com.capstone.bwlovers.auth.service;
 import com.capstone.bwlovers.auth.domain.OAuthProvider;
 import com.capstone.bwlovers.auth.domain.User;
 import com.capstone.bwlovers.auth.dto.request.UpdateNaverRequest;
-import com.capstone.bwlovers.auth.dto.response.NaverUserInfoResponse;
-import com.capstone.bwlovers.auth.dto.response.NaverTokenResponse;
-import com.capstone.bwlovers.auth.dto.response.TokenResponse;
-import com.capstone.bwlovers.auth.dto.response.UpdateNaverResponse;
+import com.capstone.bwlovers.auth.dto.response.*;
 import com.capstone.bwlovers.auth.repository.UserRepository;
 import com.capstone.bwlovers.global.exception.CustomException;
 import com.capstone.bwlovers.global.exception.ExceptionCode;
@@ -124,13 +121,41 @@ public class AuthService {
     }
 
     /*
+    네이버 정보 조회
+     */
+    @Transactional(readOnly = true)
+    public UserInfoResponse getNaver(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new CustomException(ExceptionCode.AUTH_TOKEN_INVALID);
+        }
+        Object principal = authentication.getPrincipal();
+        if (!(principal instanceof User user)) {
+            throw new CustomException(ExceptionCode.AUTH_TOKEN_INVALID);
+        }
+
+        return UserInfoResponse.builder()
+                .username(user.getUsername())
+                .profileImageUrl(user.getProfileImageUrl())
+                .phone(user.getPhone())
+                .email(user.getEmail())
+                .build();
+    }
+
+    /*
     네이버 정보 수정
      */
     @Transactional
-    public UpdateNaverResponse updateNaver(Long userId, UpdateNaverRequest request) {
+    public UpdateNaverResponse updateNaver(Authentication authentication,
+                                           UpdateNaverRequest request) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new CustomException(ExceptionCode.AUTH_TOKEN_INVALID);
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (!(principal instanceof User user)) {
+            throw new CustomException(ExceptionCode.AUTH_TOKEN_INVALID);
+        }
 
         if (request.getUsername() != null && !request.getUsername().isBlank()) {
             user.update(request.getUsername(), user.getProfileImageUrl());
@@ -140,7 +165,10 @@ public class AuthService {
             user.update(user.getUsername(), request.getProfileImageUrl());
         }
 
-        return new UpdateNaverResponse(user.getUsername(), user.getProfileImageUrl());
+        return new UpdateNaverResponse(
+                user.getUsername(),
+                user.getProfileImageUrl()
+        );
     }
 
     /*
