@@ -1,5 +1,6 @@
 package com.capstone.bwlovers.auth.domain;
 
+import com.capstone.bwlovers.auth.dto.response.UserInfoResponse;
 import com.capstone.bwlovers.health.domain.HealthStatus;
 import com.capstone.bwlovers.pregnancy.domain.PregnancyInfo;
 import jakarta.persistence.*;
@@ -78,5 +79,12 @@ public class User {
         }
     }
 
-
+    public static UserInfoResponse toResponse(User user) {
+        return UserInfoResponse.builder()
+                .username(user.getUsername())
+                .profileImageUrl(user.getProfileImageUrl())
+                .phone(user.getPhone())
+                .email(user.getEmail())
+                .build();
+    }
 }
