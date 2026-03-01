@@ -9,7 +9,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class UserInfoResponse {
     private String username;
-    private String profileImageUrl;
+    private String profileImage;
     private String email;
     private String phone;
 }

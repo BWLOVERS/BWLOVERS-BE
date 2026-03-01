@@ -64,7 +64,7 @@ public class AuthService {
                             .email(userInfoRes.getResponse().getEmail())
                             .username(userInfoRes.getResponse().getName())
                             .phone(userInfoRes.getResponse().getMobile())
-                            .profileImageUrl(userInfoRes.getResponse().getProfileImageUrl())
+                            .profileImage(userInfoRes.getResponse().getProfileImage())
                             .naverAccessToken(naverAccessToken)
                             .build()
             );
@@ -135,7 +135,7 @@ public class AuthService {
 
         return UserInfoResponse.builder()
                 .username(user.getUsername())
-                .profileImageUrl(user.getProfileImageUrl())
+                .profileImage(user.getProfileImage())
                 .phone(user.getPhone())
                 .email(user.getEmail())
                 .build();
@@ -158,16 +158,16 @@ public class AuthService {
         }
 
         if (request.getUsername() != null && !request.getUsername().isBlank()) {
-            user.update(request.getUsername(), user.getProfileImageUrl());
+            user.update(request.getUsername(), user.getProfileImage());
         }
 
-        if (request.getProfileImageUrl() != null && !request.getProfileImageUrl().isBlank()) {
-            user.update(user.getUsername(), request.getProfileImageUrl());
+        if (request.getProfileImage() != null && !request.getProfileImage().isBlank()) {
+            user.update(user.getUsername(), request.getProfileImage());
         }
 
         return new UpdateNaverResponse(
                 user.getUsername(),
-                user.getProfileImageUrl()
+                user.getProfileImage()
         );
     }
 

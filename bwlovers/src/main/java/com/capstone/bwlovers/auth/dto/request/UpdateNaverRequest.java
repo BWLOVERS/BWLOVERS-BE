@@ -7,5 +7,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UpdateNaverRequest {
     private String username;
-    private String profileImageUrl;
+    private String profileImage;
 }
