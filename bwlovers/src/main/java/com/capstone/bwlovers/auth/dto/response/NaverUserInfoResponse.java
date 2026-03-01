@@ -20,10 +20,9 @@ public class NaverUserInfoResponse {
         private String id;
         private String email;
         private String name;
-
-        @JsonProperty("mobile")
         private String mobile;
 
-        private String profileImageUrl;
+        @JsonProperty("profile_image")
+        private String profileImage;
     }
 }

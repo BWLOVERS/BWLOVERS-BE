@@ -40,8 +40,8 @@ public class User {
     @Column(length = 20)
     private String phone;
 
-    @Column(name = "profile_image_url", length = 500)
-    private String profileImageUrl;
+    @Column(name = "profile_image", length = 500)
+    private String profileImage;
 
     @Column(name = "naver_access_token", length = 500) // 네이버 연동 해제용
     private String naverAccessToken;
@@ -63,9 +63,9 @@ public class User {
         this.naverAccessToken = naverAccessToken;
     }
 
-    public void update(String username, String profileImageUrl) {
+    public void update(String username, String profileImage) {
         this.username = username;
-        this.profileImageUrl = profileImageUrl;
+        this.profileImage = profileImage;
     }
 
     public void clearRelations() {
@@ -82,7 +82,7 @@ public class User {
     public static UserInfoResponse toResponse(User user) {
         return UserInfoResponse.builder()
                 .username(user.getUsername())
-                .profileImageUrl(user.getProfileImageUrl())
+                .profileImage(user.getProfileImage())
                 .phone(user.getPhone())
                 .email(user.getEmail())
                 .build();

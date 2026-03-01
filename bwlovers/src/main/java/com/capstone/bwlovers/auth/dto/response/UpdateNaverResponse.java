@@ -9,5 +9,5 @@ import lombok.RequiredArgsConstructor;
 @AllArgsConstructor
 public class UpdateNaverResponse {
     private String username;
-    private String profileImageUrl;
+    private String profileImage;
 }
