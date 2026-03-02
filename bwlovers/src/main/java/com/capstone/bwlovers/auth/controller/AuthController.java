@@ -60,6 +60,15 @@ public class AuthController {
     }
 
     /*
+    회원 프로필 이미지 삭제
+     */
+    @DeleteMapping("/users/me/profile-image")
+    public ResponseEntity<Void> deleteProfileImage(@AuthenticationPrincipal User user) {
+        authService.deleteProfileImage(user.getUserId());
+        return ResponseEntity.noContent().build();
+    }
+
+    /*
     회원 닉네임 수정
      */
     @PatchMapping("/users/me/username")

@@ -68,7 +68,9 @@ public enum ExceptionCode {
     S3_ACCESS_DENIED(HttpStatus.FORBIDDEN, ClientExceptionCode.S3_ACCESS_DENIED, "S3 업로드 권한이 없습니다."),
     S3_BUCKET_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.S3_BUCKET_NOT_FOUND, "S3 버킷을 찾을 수 없습니다."),
     S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, ClientExceptionCode.S3_UPLOAD_FAILED, "S3 업로드에 실패했습니다."),
-    S3_CLIENT_ERROR(HttpStatus.BAD_GATEWAY, ClientExceptionCode.S3_CLIENT_ERROR, "S3 통신 중 오류가 발생했습니다.");
+    S3_CLIENT_ERROR(HttpStatus.BAD_GATEWAY, ClientExceptionCode.S3_CLIENT_ERROR, "S3 통신 중 오류가 발생했습니다."),
+    S3_PROFILE_IMAGE_NOT_FOUND(HttpStatus.BAD_REQUEST, ClientExceptionCode.S3_PROFILE_IMAGE_NOT_FOUND, "삭제할 프로필 이미지가 존재하지 않습니다."),
+    S3_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, ClientExceptionCode.S3_DELETE_FAILED, "프로필 이미지 삭제에 실패했습니다.");
 
 
     private final HttpStatus httpStatus;
