@@ -1,20 +1,20 @@
 package com.capstone.bwlovers.ai.recommendation.service;
 
+import com.capstone.bwlovers.ai.recommendation.dto.request.AiHealthStatus;
+import com.capstone.bwlovers.ai.recommendation.dto.request.AiUserProfile;
 import com.capstone.bwlovers.ai.recommendation.dto.request.RecommendationCallbackRequest;
 import com.capstone.bwlovers.ai.recommendation.dto.request.RecommendationRequest;
+import com.capstone.bwlovers.ai.recommendation.dto.response.FastApiResponse;
 import com.capstone.bwlovers.ai.recommendation.dto.response.RecommendationListResponse;
 import com.capstone.bwlovers.ai.recommendation.dto.response.RecommendationResponse;
-import com.capstone.bwlovers.ai.recommendation.dto.response.FastApiResponse;
 import com.capstone.bwlovers.auth.domain.User;
 import com.capstone.bwlovers.auth.repository.UserRepository;
 import com.capstone.bwlovers.global.exception.CustomException;
 import com.capstone.bwlovers.global.exception.ExceptionCode;
 import com.capstone.bwlovers.health.domain.HealthStatus;
-import com.capstone.bwlovers.health.dto.request.HealthStatusRequest;
 import com.capstone.bwlovers.health.repository.HealthStatusRepository;
 import com.capstone.bwlovers.insurance.repository.InsuranceProductRepository;
 import com.capstone.bwlovers.pregnancy.domain.PregnancyInfo;
-import com.capstone.bwlovers.pregnancy.dto.request.PregnancyInfoRequest;
 import com.capstone.bwlovers.pregnancy.repository.PregnancyInfoRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -25,12 +25,16 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
+import static software.amazon.awssdk.utils.StringUtils.isBlank;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecommendationService {
 
     private static final long DEFAULT_TTL_SEC = 600L; // 10분
+    private static final Duration AI_RECOMMEND_TIMEOUT = Duration.ofSeconds(60);
+    private static final Duration AI_DETAIL_TIMEOUT = Duration.ofSeconds(15);
 
     private final UserRepository userRepository;
     private final PregnancyInfoRepository pregnancyInfoRepository;
@@ -38,10 +42,8 @@ public class RecommendationService {
 
     private final WebClient aiWebClient;
     private final RecommendationCacheService recommendationCacheService;
-
     private final InsuranceProductRepository insuranceProductRepository;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     /**
      * 결과 전체를 바로 받는 방식
@@ -67,13 +69,13 @@ public class RecommendationService {
                 .onStatus(s -> s.is5xxServerError(),
                         resp -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX)))
                 .bodyToMono(FastApiResponse.class)
-                .timeout(Duration.ofSeconds(25))
+                .timeout(AI_RECOMMEND_TIMEOUT)
+                .doOnSubscribe(s -> log.info("[AI] POST /ai/recommend start userId={}", userId))
+                .doOnSuccess(r -> log.info("[AI] POST /ai/recommend success userId={} resultId={}",
+                        userId, r == null ? null : r.getResultId()))
+                .doOnError(e -> log.error("[AI] POST /ai/recommend error userId={}", userId, e))
                 .block();
     }
-
-    // =========================================================
-    // 리스트 → 상세 보기
-    // =========================================================
 
     /**
      * 추천 리스트 조회
@@ -91,7 +93,7 @@ public class RecommendationService {
         RecommendationRequest dto = toFastApiRequest(pregnancyInfo, healthStatus);
 
         String raw = aiWebClient.post()
-                .uri("/ai/recommend") // FastAPI: 리스트 + resultId 반환해야 함
+                .uri("/ai/recommend")
                 .bodyValue(dto)
                 .retrieve()
                 .onStatus(s -> s.value() == 400 || s.value() == 422,
@@ -101,7 +103,9 @@ public class RecommendationService {
                 .onStatus(s -> s.is5xxServerError(),
                         resp -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX)))
                 .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(25))
+                .timeout(AI_RECOMMEND_TIMEOUT)
+                .doOnSubscribe(s -> log.info("[AI] POST /ai/recommend(list) start userId={}", userId))
+                .doOnError(e -> log.error("[AI] POST /ai/recommend(list) error userId={}", userId, e))
                 .block();
 
         log.info("[AI /ai/recommend RAW RESPONSE] {}", raw);
@@ -123,11 +127,8 @@ public class RecommendationService {
 
         long ttlSec = (list.getExpiresInSec() == null ? DEFAULT_TTL_SEC : list.getExpiresInSec());
 
-        // 1) 리스트 저장
         recommendationCacheService.saveList(list.getResultId(), list, ttlSec);
 
-        // 2) itemId별 상세 캐시 저장
-        //    (현재는 list 응답에 상세 필드가 포함되어 있으므로 fromListItem이 제대로 채워줄 수 있음)
         if (list.getItems() != null) {
             for (var item : list.getItems()) {
                 if (item == null || isBlank(item.getItemId())) continue;
@@ -153,17 +154,11 @@ public class RecommendationService {
             throw new CustomException(ExceptionCode.AI_INVALID_REQUEST);
         }
 
-        log.info("[FETCH DETAIL] Request ResultId: {}, ItemId: {}", resultId, itemId);
-
-        // 1) Redis 캐시 먼저 확인
         RecommendationResponse cached = recommendationCacheService.getDetail(resultId, itemId);
         if (cached != null) {
-            log.info("[FETCH DETAIL] Redis cache HIT. itemId={}", itemId);
+            log.info("[FETCH DETAIL] Redis cache HIT. resultId={} itemId={}", resultId, itemId);
             return cached;
         }
-
-        // 2) Redis에 없으면 FastAPI로 fallback
-        log.info("[FETCH DETAIL] Redis cache MISS -> try FastAPI. resultId={}", resultId);
 
         RecommendationResponse fresh = aiWebClient.get()
                 .uri(uriBuilder -> uriBuilder
@@ -175,10 +170,11 @@ public class RecommendationService {
                 .onStatus(s -> s.is5xxServerError(),
                         resp -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX)))
                 .bodyToMono(RecommendationResponse.class)
-                .timeout(Duration.ofSeconds(10))
+                .timeout(AI_DETAIL_TIMEOUT)
+                .doOnSubscribe(s -> log.info("[AI] GET /ai/results/{}/items/{} start", resultId, itemId))
+                .doOnError(e -> log.error("[AI] GET /ai/results/{}/items/{} error", resultId, itemId, e))
                 .block();
 
-        // 3) FastAPI에서 가져온 데이터 캐시에 저장
         if (fresh != null) {
             recommendationCacheService.saveDetail(resultId, itemId, fresh, DEFAULT_TTL_SEC);
         }
@@ -197,12 +193,9 @@ public class RecommendationService {
 
         long ttlSec = (callback.getExpiresInSec() == null ? DEFAULT_TTL_SEC : callback.getExpiresInSec());
 
-        // 1) 리스트 생성 후 저장
         RecommendationListResponse list = RecommendationListResponse.fromCallback(callback);
-        // fromCallback 안에서 이미 normalizeCounts 호출됨(안전)
         recommendationCacheService.saveList(callback.getResultId(), list, ttlSec);
 
-        // 2) 상세(itemId별) 저장
         if (callback.getItems() != null) {
             for (var item : callback.getItems()) {
                 if (item == null || isBlank(item.getItemId())) continue;
@@ -222,13 +215,57 @@ public class RecommendationService {
     // private
     // =========================================================
 
+    //원하는 JSON 형태로 변환
     private RecommendationRequest toFastApiRequest(PregnancyInfo pregnancyInfo, HealthStatus healthStatus) {
-        PregnancyInfoRequest pregnancyInfoRequest = PregnancyInfoRequest.from(pregnancyInfo);
-        HealthStatusRequest healthStatusRequest = HealthStatusRequest.from(healthStatus);
-        return new RecommendationRequest(pregnancyInfoRequest, healthStatusRequest);
-    }
 
-    private boolean isBlank(String s) {
-        return s == null || s.isBlank();
+        String jobName = (pregnancyInfo.getJob() == null) ? null : pregnancyInfo.getJob().getJobName();
+        Integer riskLevel = (pregnancyInfo.getJob() == null) ? null : pregnancyInfo.getJob().getRiskLevel();
+
+        AiUserProfile p = AiUserProfile.builder()
+                .birthDate(pregnancyInfo.getBirthDate() == null ? null : pregnancyInfo.getBirthDate().toString())
+                .height(pregnancyInfo.getHeight())
+                .weightPre(pregnancyInfo.getWeightPre())
+                .weightCurrent(pregnancyInfo.getWeightCurrent())
+                .isFirstbirth(pregnancyInfo.getIsFirstbirth())
+                .gestationalWeek(pregnancyInfo.getGestationalWeek())
+                .expectedDate(pregnancyInfo.getExpectedDate() == null ? null : pregnancyInfo.getExpectedDate().toString())
+                .isMultiplePregnancy(pregnancyInfo.getIsMultiplePregnancy())
+                .miscarriageHistory(pregnancyInfo.getMiscarriageHistory())
+                .jobName(jobName)
+                .riskLevel(riskLevel)
+                .build();
+
+        AiHealthStatus h = AiHealthStatus.builder()
+                .pastDiseases(
+                        healthStatus.getPastDiseases().stream()
+                                .map(x -> AiHealthStatus.AiPastDisease.builder()
+                                        .pastDiseaseType(x.getPastDiseaseType().name())
+                                        .pastCured(x.isPastCured())
+                                        .pastLastTreatedYm(x.getPastLastTreatedAt() == null ? null : x.getPastLastTreatedAt().toString().substring(0, 7))
+                                        .build())
+                                .toList()
+                )
+                .chronicDiseases(
+                        healthStatus.getChronicDiseases().stream()
+                                .map(x -> AiHealthStatus.AiChronicDisease.builder()
+                                        .chronicDiseaseType(x.getChronicDiseaseType().name())
+                                        .chronicOnMedication(x.isChronicOnMedication())
+                                        .build())
+                                .toList()
+                )
+                .pregnancyComplications(
+                        healthStatus.getPregnancyComplications().stream()
+                                .map(pc -> AiHealthStatus.AiPregnancyComplication.builder()
+                                        .complicationId(pc.getComplicationId())
+                                        .pregnancyComplicationType(pc.getPregnancyComplicationType().name())
+                                        .build())
+                                .toList()
+                )
+                .build();
+
+        return RecommendationRequest.builder()
+                .pregnancyInfo(p)
+                .healthStatus(h)
+                .build();
     }
 }
