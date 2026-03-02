@@ -2,11 +2,12 @@ package com.capstone.bwlovers.auth.service;
 
 import com.capstone.bwlovers.auth.domain.OAuthProvider;
 import com.capstone.bwlovers.auth.domain.User;
-import com.capstone.bwlovers.auth.dto.request.UpdateNaverRequest;
+import com.capstone.bwlovers.auth.dto.request.UpdateUsernameRequest;
 import com.capstone.bwlovers.auth.dto.response.*;
 import com.capstone.bwlovers.auth.repository.UserRepository;
 import com.capstone.bwlovers.global.exception.CustomException;
 import com.capstone.bwlovers.global.exception.ExceptionCode;
+import com.capstone.bwlovers.global.s3.S3Uploader;
 import com.capstone.bwlovers.global.security.jwt.JwtProvider;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +31,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final OAuthClient oAuthClient;
     private final UserRepository userRepository;
+    private final S3Uploader s3Uploader;
 
     @Value("${spring.security.oauth2.client.registration.naver.client-id}")
     private String clientId;
@@ -124,14 +127,9 @@ public class AuthService {
     네이버 정보 조회
      */
     @Transactional(readOnly = true)
-    public UserInfoResponse getNaver(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new CustomException(ExceptionCode.AUTH_TOKEN_INVALID);
-        }
-        Object principal = authentication.getPrincipal();
-        if (!(principal instanceof User user)) {
-            throw new CustomException(ExceptionCode.AUTH_TOKEN_INVALID);
-        }
+    public UserInfoResponse getNaver(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
 
         return UserInfoResponse.builder()
                 .username(user.getUsername())
@@ -142,33 +140,34 @@ public class AuthService {
     }
 
     /*
-    네이버 정보 수정
+     네이버 프로필 이미지 수정
      */
     @Transactional
-    public UpdateNaverResponse updateNaver(Authentication authentication,
-                                           UpdateNaverRequest request) {
+    public void updateProfileImage(Long userId, MultipartFile image) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
 
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new CustomException(ExceptionCode.AUTH_TOKEN_INVALID);
+        String imageUrl = s3Uploader.uploadProfileImage(image, userId);
+
+        user.updateProfileImage(imageUrl);
+    }
+
+    /*
+    네이버 닉네임 수정
+     */
+    @Transactional
+    public UpdateUsernameResponse updateUsername(Long userId, UpdateUsernameRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
+
+        String username = request.getUsername();
+        if (username == null || username.isBlank()) {
+            throw new CustomException(ExceptionCode.ILLEGAL_ARGUMENT);
         }
 
-        Object principal = authentication.getPrincipal();
-        if (!(principal instanceof User user)) {
-            throw new CustomException(ExceptionCode.AUTH_TOKEN_INVALID);
-        }
+        user.updateUsername(username);
 
-        if (request.getUsername() != null && !request.getUsername().isBlank()) {
-            user.update(request.getUsername(), user.getProfileImage());
-        }
-
-        if (request.getProfileImage() != null && !request.getProfileImage().isBlank()) {
-            user.update(user.getUsername(), request.getProfileImage());
-        }
-
-        return new UpdateNaverResponse(
-                user.getUsername(),
-                user.getProfileImage()
-        );
+        return new UpdateUsernameResponse(user.getUsername());
     }
 
     /*
