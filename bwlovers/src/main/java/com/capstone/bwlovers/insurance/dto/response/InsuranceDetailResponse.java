@@ -2,6 +2,9 @@ package com.capstone.bwlovers.insurance.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -18,6 +21,7 @@ public class InsuranceDetailResponse {
     private String insuranceRecommendationReason;
     private String memo;
     private List<SpecialContractDetailDto> specialContracts;
+    private LocalDateTime createdAt;
 
     @Getter
     @Builder
