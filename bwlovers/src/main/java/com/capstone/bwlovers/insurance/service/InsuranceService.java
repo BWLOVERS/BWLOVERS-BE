@@ -210,7 +210,9 @@ public class InsuranceService {
      */
     @Transactional(readOnly = true)
     public List<InsuranceDetailListResponse> getMyInsuranceDetails(Long userId) {
-        List<InsuranceProduct> products = insuranceProductRepository.findAllByUser_UserIdOrderByCreatedAtDesc(userId);
+
+        List<InsuranceProduct> products =
+                insuranceProductRepository.findAllByUser_UserIdOrderByCreatedAtDesc(userId);
 
         return products.stream()
                 .map(product -> InsuranceDetailListResponse.builder()
@@ -222,11 +224,18 @@ public class InsuranceService {
                         .monthlyCost(product.getMonthlyCost())
                         .memo(product.getMemo())
                         .createdAt(product.getCreatedAt())
-                        .specialContractNames(product.getSpecialContracts().stream()
-                                .map(sc -> sc.getContractName())
-                                .collect(Collectors.toList()))
-                        .build())
-                .collect(Collectors.toList());
+                        .specialContracts(
+                                product.getSpecialContracts().stream()
+                                        .map(sc -> InsuranceDetailListResponse.SpecialContractResponse.builder()
+                                                .contractId(sc.getContractId())
+                                                .contractName(sc.getContractName())
+                                                .build()
+                                        )
+                                        .toList()
+                        )
+                        .build()
+                )
+                .toList();
     }
 
     /*

@@ -52,8 +52,8 @@ public class PregnancyInfo {
     @Column(name = "miscarriage_history", nullable = false)
     private Integer miscarriageHistory;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "job_id", nullable=false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "job_id", nullable = false)
     private Job job;
 
     public void update(
