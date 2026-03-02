@@ -140,20 +140,53 @@ public class AuthService {
     }
 
     /*
-     네이버 프로필 이미지 수정
+     회원 프로필 사진 수정
      */
     @Transactional
     public void updateProfileImage(Long userId, MultipartFile image) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
 
-        String imageUrl = s3Uploader.uploadProfileImage(image, userId);
+        String oldImageUrl = user.getProfileImage();
 
-        user.updateProfileImage(imageUrl);
+        String newImageUrl = s3Uploader.uploadProfileImage(image, userId);
+        user.updateProfileImage(newImageUrl);
+
+        // 기존 이미지가 우리 S3일 때만 삭제
+        if (oldImageUrl != null && !oldImageUrl.isBlank()
+                && s3Uploader.isOurS3Url(oldImageUrl)) {
+            try {
+                s3Uploader.deleteProfileImage(oldImageUrl);
+            } catch (CustomException e) {
+                log.warn("[PROFILE] old image delete failed. userId={}, url={}, reason={}",
+                        userId, oldImageUrl, e.getExceptionCode().name());
+            } catch (Exception e) {
+                log.warn("[PROFILE] old image delete failed. userId={}, url={}, reason={}",
+                        userId, oldImageUrl, e.getMessage());
+            }
+        }
     }
 
     /*
-    네이버 닉네임 수정
+    회원 프로필 사진 삭제
+     */
+    @Transactional
+    public void deleteProfileImage(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ExceptionCode.USER_NOT_FOUND));
+
+        String currentImageUrl = user.getProfileImage();
+        if (currentImageUrl == null || currentImageUrl.isBlank()) {
+            throw new CustomException(ExceptionCode.S3_PROFILE_IMAGE_NOT_FOUND);
+        }
+
+        s3Uploader.deleteProfileImage(currentImageUrl);
+        user.updateProfileImage(null);
+    }
+
+
+    /*
+    회원 닉네임 수정
      */
     @Transactional
     public UpdateUsernameResponse updateUsername(Long userId, UpdateUsernameRequest request) {
