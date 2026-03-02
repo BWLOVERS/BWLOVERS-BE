@@ -17,5 +17,12 @@ public class InsuranceDetailListResponse {
     private String monthlyCost;
     private String memo;
     private LocalDateTime createdAt;
-    private List<String> specialContractNames;
+    private List<SpecialContractResponse> specialContracts;
+
+    @Getter
+    @Builder
+    public static class SpecialContractResponse {
+        private Long contractId;
+        private String contractName;
+    }
 }
