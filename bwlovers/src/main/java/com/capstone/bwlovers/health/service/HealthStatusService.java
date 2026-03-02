@@ -114,14 +114,12 @@ public class HealthStatusService {
         HealthStatus status = healthStatusRepository.findByUser(user)
                 .orElseThrow(() -> new CustomException(ExceptionCode.HEALTH_STATUS_NOT_FOUND));
 
-        // 기존 자식 엔티티 전체 삭제 후, 요청 값으로 재구성
-        status.clearChildren();
-
-        // 과거 병력
+        // 과거 병력: null이면 변경 안 함, 값이 오면 해당 컬렉션만 교체
         if (request.getPastDiseases() != null) {
+            status.clearPastDiseases();
             for (HealthStatusRequest.PastDiseaseItem item : request.getPastDiseases()) {
-
-                LocalDate treatedAt = parseYearMonthToFirstDay(item.getPastLastTreatedAt());
+                LocalDate treatedAt = item.getPastLastTreatedAt() == null ? null
+                        : parseYearMonthToFirstDay(item.getPastLastTreatedAt());
 
                 PastDisease pd = PastDisease.builder()
                         .pastDiseaseType(item.getPastDiseaseType())
@@ -135,8 +133,8 @@ public class HealthStatusService {
 
         // 만성 질환
         if (request.getChronicDiseases() != null) {
+            status.clearChronicDiseases();
             for (HealthStatusRequest.ChronicDiseaseItem item : request.getChronicDiseases()) {
-
                 ChronicDisease cd = ChronicDisease.builder()
                         .chronicDiseaseType(item.getChronicDiseaseType())
                         .chronicOnMedication(Boolean.TRUE.equals(item.getChronicOnMedication()))
@@ -146,8 +144,9 @@ public class HealthStatusService {
             }
         }
 
-        // 이번 임신 확정 진단
+        // 임신 합병증
         if (request.getPregnancyComplications() != null) {
+            status.clearPregnancyComplications();
             for (var type : request.getPregnancyComplications()) {
                 if (type == null) continue;
 
@@ -159,7 +158,6 @@ public class HealthStatusService {
             }
         }
 
-        HealthStatus saved = healthStatusRepository.save(status);
-        return HealthStatusResponse.from(saved);
+        return HealthStatusResponse.from(status);
     }
 }
