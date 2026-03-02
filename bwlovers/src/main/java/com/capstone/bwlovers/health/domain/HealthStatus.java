@@ -54,8 +54,29 @@ public class HealthStatus extends BaseTimeEntity {
     }
 
     public void clearChildren() {
+        clearPastDiseases();
+        clearChronicDiseases();
+        clearPregnancyComplications();
+    }
+
+    public void clearPastDiseases() {
+        for (PastDisease pd : pastDiseases) {
+            pd.setHealthStatus(null);
+        }
         pastDiseases.clear();
+    }
+
+    public void clearChronicDiseases() {
+        for (ChronicDisease cd : chronicDiseases) {
+            cd.setHealthStatus(null);
+        }
         chronicDiseases.clear();
+    }
+
+    public void clearPregnancyComplications() {
+        for (PregnancyComplication pc : pregnancyComplications) {
+            pc.setHealthStatus(null);
+        }
         pregnancyComplications.clear();
     }
 
