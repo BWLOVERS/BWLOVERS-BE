@@ -66,4 +66,7 @@ public enum ClientExceptionCode {
     S3_CLIENT_ERROR,
     S3_PROFILE_IMAGE_NOT_FOUND,
     S3_DELETE_FAILED,
+
+    // simulation
+    SIMULATION_NOT_FOUND,
 }

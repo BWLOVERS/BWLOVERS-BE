@@ -9,10 +9,15 @@ import com.capstone.bwlovers.global.exception.ExceptionCode;
 import com.capstone.bwlovers.simulation.domain.Simulation;
 import com.capstone.bwlovers.simulation.domain.SimulationContract;
 import com.capstone.bwlovers.simulation.dto.request.SimulationSaveRequest;
+import com.capstone.bwlovers.simulation.dto.response.SimulationDetailListResponse;
+import com.capstone.bwlovers.simulation.dto.response.SimulationDetailResponse;
+import com.capstone.bwlovers.simulation.dto.response.SimulationListResponse;
 import com.capstone.bwlovers.simulation.repository.SimulationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -84,11 +89,55 @@ public class SimulationService {
         return simulationRepository.save(simulation).getId();
     }
 
+    /**
+     * 시뮬레이션 리스트 조회
+     */
+    @Transactional(readOnly = true)
+    public List<SimulationListResponse> getSimulationList(Long userId) {
+        return simulationRepository.findByUser_UserIdOrderByCreatedAtAsc(userId).stream()
+                .map(s -> SimulationListResponse.of(s.getId(), s.getCreatedAt()))
+                .toList();
+    }
+
+    /**
+     * 시뮬레이션 상세 리스트 조회
+     */
+    @Transactional(readOnly = true)
+    public List<SimulationDetailListResponse> getSimulationDetailList(Long userId) {
+        return simulationRepository.findByUser_UserIdOrderByCreatedAtAsc(userId).stream()
+                .map(s -> SimulationDetailListResponse.of(s.getId(), s.getProductName(), s.getCreatedAt()))
+                .toList();
+    }
+
+    /**
+     * 시뮬레이션 상세보기
+     */
+    @Transactional(readOnly = true)
+    public SimulationDetailResponse getSimulationDetail(Long userId, Long simulationId) {
+        var simulation = simulationRepository.findByIdAndUser_UserId(simulationId, userId)
+                .orElseThrow(() -> new CustomException(ExceptionCode.SIMULATION_NOT_FOUND));
+
+        return SimulationDetailResponse.from(simulation);
+    }
+
     private boolean isBlank(String s) {
         return s == null || s.isBlank();
     }
 
     private String nullToEmpty(String s) {
         return s == null ? "" : s;
+    }
+
+    /**
+     * 시뮬레이션 삭제
+     */
+    @Transactional
+    public void deleteSimulation(Long userId, Long simulationId) {
+        boolean exists = simulationRepository.existsByIdAndUser_UserId(simulationId, userId);
+        if (!exists) {
+            throw new CustomException(ExceptionCode.SIMULATION_NOT_FOUND);
+        }
+
+        simulationRepository.deleteByIdAndUser_UserId(simulationId, userId);
     }
 }
