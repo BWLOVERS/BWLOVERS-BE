@@ -272,6 +272,7 @@ public class InsuranceService {
                 .insuranceRecommendationReason(insurance.getInsuranceRecommendationReason())
                 .memo(insurance.getMemo())
                 .specialContracts(contractDtos)
+                .createdAt(insurance.getCreatedAt())
                 .build();
     }
 
