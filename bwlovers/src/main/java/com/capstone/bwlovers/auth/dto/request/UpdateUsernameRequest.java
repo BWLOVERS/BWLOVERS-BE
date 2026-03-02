@@ -5,7 +5,6 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class UpdateNaverRequest {
+public class UpdateUsernameRequest {
     private String username;
-    private String profileImage;
 }

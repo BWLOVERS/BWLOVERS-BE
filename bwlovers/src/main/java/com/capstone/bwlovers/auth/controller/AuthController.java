@@ -1,17 +1,21 @@
 package com.capstone.bwlovers.auth.controller;
 
+import com.capstone.bwlovers.auth.domain.User;
 import com.capstone.bwlovers.auth.dto.request.NaverLoginRequest;
 import com.capstone.bwlovers.auth.dto.request.RefreshRequest;
-import com.capstone.bwlovers.auth.dto.request.UpdateNaverRequest;
+import com.capstone.bwlovers.auth.dto.request.UpdateUsernameRequest;
 import com.capstone.bwlovers.auth.dto.response.TokenResponse;
-import com.capstone.bwlovers.auth.dto.response.UpdateNaverResponse;
+import com.capstone.bwlovers.auth.dto.response.UpdateUsernameResponse;
 import com.capstone.bwlovers.auth.dto.response.UserInfoResponse;
 import com.capstone.bwlovers.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -41,16 +45,27 @@ public class AuthController {
     네이버 로그인 정보 조회 (프로필 사진, 닉네임, 이메일, 전화번호)
      */
     @GetMapping("/users/me")
-    public ResponseEntity<UserInfoResponse> getNaverInfo(Authentication authentication) {
-        return ResponseEntity.ok(authService.getNaver(authentication));
+    public ResponseEntity<UserInfoResponse> getNaver(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(authService.getNaver(user.getUserId()));
     }
 
     /*
-    네이버 로그인 정보 수정 (닉네임, 프로필 사진만)
+    회원 프로필 이미지 수정
      */
-    @PatchMapping("/users/me")
-    public ResponseEntity<UpdateNaverResponse> updateNaver(Authentication authentication, @RequestBody UpdateNaverRequest request) {
-        return ResponseEntity.ok(authService.updateNaver(authentication, request));
+    @PatchMapping(value = "/users/me/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> updateProfileImage(@AuthenticationPrincipal User user,
+                                                   @RequestPart("image") MultipartFile image) {
+        authService.updateProfileImage(user.getUserId(), image);
+        return ResponseEntity.ok().build();
+    }
+
+    /*
+    회원 닉네임 수정
+     */
+    @PatchMapping("/users/me/username")
+    public ResponseEntity<UpdateUsernameResponse> updateNickname(@AuthenticationPrincipal User user,
+                                                                 @RequestBody @Valid UpdateUsernameRequest request) {
+        return ResponseEntity.ok(authService.updateUsername(user.getUserId(), request));
     }
 
     /*

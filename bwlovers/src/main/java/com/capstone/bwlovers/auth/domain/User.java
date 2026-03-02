@@ -52,19 +52,15 @@ public class User {
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private HealthStatus healthStatus;
 
-    public void setHealthStatus(HealthStatus healthStatus) {
-        this.healthStatus = healthStatus;
-        if (healthStatus != null && healthStatus.getUser() != this) {
-            healthStatus.setUser(this);
-        }
-    }
-
     public void updateNaverToken(String naverAccessToken) {
         this.naverAccessToken = naverAccessToken;
     }
 
-    public void update(String username, String profileImage) {
+    public void updateUsername(String username) {
         this.username = username;
+    }
+
+    public void updateProfileImage(String profileImage) {
         this.profileImage = profileImage;
     }
 
@@ -79,12 +75,4 @@ public class User {
         }
     }
 
-    public static UserInfoResponse toResponse(User user) {
-        return UserInfoResponse.builder()
-                .username(user.getUsername())
-                .profileImage(user.getProfileImage())
-                .phone(user.getPhone())
-                .email(user.getEmail())
-                .build();
-    }
 }

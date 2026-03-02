@@ -59,7 +59,16 @@ public enum ExceptionCode {
     OCR_FILE_TOO_LARGE(HttpStatus.BAD_REQUEST, ClientExceptionCode.OCR_FILE_TOO_LARGE, "업로드 파일 용량 제한을 초과했습니다."),
     OCR_UNSUPPORTED_FILE_TYPE(HttpStatus.BAD_REQUEST, ClientExceptionCode.OCR_UNSUPPORTED_FILE_TYPE, "이미지 파일만 업로드할 수 있습니다."),
     OCR_JOB_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.OCR_JOB_NOT_FOUND, "OCR 작업 결과를 찾을 수 없습니다. (만료되었거나 존재하지 않습니다.)"),
-    OCR_LOCAL_STORAGE_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, ClientExceptionCode.OCR_LOCAL_STORAGE_NOT_SUPPORTED,"외부 OCR 연동을 위해서는 S3 임시 업로드가 필요합니다.");
+    OCR_LOCAL_STORAGE_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, ClientExceptionCode.OCR_LOCAL_STORAGE_NOT_SUPPORTED,"외부 OCR 연동을 위해서는 S3 임시 업로드가 필요합니다."),
+
+    // S3
+    S3_EMPTY_FILE(HttpStatus.BAD_REQUEST, ClientExceptionCode.S3_EMPTY_FILE, "빈 파일입니다."),
+    S3_FILE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, ClientExceptionCode.S3_FILE_TOO_LARGE, "업로드 파일 용량 제한을 초과했습니다."),
+    S3_UNSUPPORTED_FILE_TYPE(HttpStatus.BAD_REQUEST, ClientExceptionCode.S3_UNSUPPORTED_FILE_TYPE, "지원하지 않는 파일 형식입니다."),
+    S3_ACCESS_DENIED(HttpStatus.FORBIDDEN, ClientExceptionCode.S3_ACCESS_DENIED, "S3 업로드 권한이 없습니다."),
+    S3_BUCKET_NOT_FOUND(HttpStatus.NOT_FOUND, ClientExceptionCode.S3_BUCKET_NOT_FOUND, "S3 버킷을 찾을 수 없습니다."),
+    S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, ClientExceptionCode.S3_UPLOAD_FAILED, "S3 업로드에 실패했습니다."),
+    S3_CLIENT_ERROR(HttpStatus.BAD_GATEWAY, ClientExceptionCode.S3_CLIENT_ERROR, "S3 통신 중 오류가 발생했습니다.");
 
 
     private final HttpStatus httpStatus;

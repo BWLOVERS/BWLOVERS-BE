@@ -1,4 +1,4 @@
-package com.capstone.bwlovers.ai.common.config;
+package com.capstone.bwlovers.global.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
