@@ -27,18 +27,26 @@ public final class AiCacheKeys {
 
     /**
      * 분석 리스트 키 생성
-     * 결과: ai:v2:simulation:result:{simulationId}
+     * 결과: ai:v2:simulation:result:{resultId}
      */
-    public static String simulationResultKey(String simulationId) {
-        return SIMULATION_PREFIX + "result:" + simulationId;
+    public static String simulationResultKey(String resultId) {
+        return SIMULATION_PREFIX + "result:" + resultId;
+    }
+
+    /**
+     * 분석 요청 원본 보험 키 생성
+     * 결과: ai:v2:simulation:source-insurance:{resultId}
+     */
+    public static String simulationSourceInsuranceKey(String resultId) {
+        return SIMULATION_PREFIX + "source-insurance:" + resultId;
     }
 
     /**
      * 분석 결과 상세 키 생성
-     * 결과: ai:v2:simulation:status:{simulationId}
+     * 결과: ai:v2:simulation:status:{resultId}
      */
-    public static String simulationStatusKey(String simulationId) {
-        return SIMULATION_PREFIX + "status:" + simulationId;
+    public static String simulationStatusKey(String resultId) {
+        return SIMULATION_PREFIX + "status:" + resultId;
     }
 
     // OCR Job

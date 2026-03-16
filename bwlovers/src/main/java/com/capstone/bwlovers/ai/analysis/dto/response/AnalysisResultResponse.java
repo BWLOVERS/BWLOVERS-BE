@@ -20,6 +20,18 @@ public class AnalysisResultResponse {
     @JsonProperty("product_name")
     private String productName;
 
+    @JsonProperty("is_long_term")
+    private Boolean longTerm;
+
+    @JsonProperty("sum_insured")
+    private Long sumInsured;
+
+    @JsonProperty("monthly_cost")
+    private String monthlyCost;
+
+    @JsonProperty("memo")
+    private String memo;
+
     @JsonProperty("special_contracts")
     private List<SpecialContract> specialContracts;
 
@@ -58,6 +70,10 @@ public class AnalysisResultResponse {
                 .resultId(cb.getResultId())
                 .insuranceCompany(cb.getInsuranceCompany())
                 .productName(cb.getProductName())
+                .longTerm(null)
+                .sumInsured(null)
+                .monthlyCost(null)
+                .memo(null)
                 .specialContracts(mapped)
                 .question(cb.getQuestion())
                 .result(cb.getResult())

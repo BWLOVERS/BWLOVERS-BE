@@ -10,6 +10,7 @@ import java.util.Optional;
 
 public interface InsuranceProductRepository extends JpaRepository<InsuranceProduct, Long> {
     Optional<InsuranceProduct> findByUser_UserIdAndResultIdAndItemId(Long userId, String resultId, String itemId);
+    Optional<InsuranceProduct> findTopByInsuranceCompanyAndProductNameOrderByCreatedAtDesc(String insuranceCompany, String productName);
     List<InsuranceProduct> findAllByUser_UserIdOrderByCreatedAtDesc(Long userId);
 
     // N+1 문제 방지를 위해 Fetch Join이 적용된 레포지토리 메서드
