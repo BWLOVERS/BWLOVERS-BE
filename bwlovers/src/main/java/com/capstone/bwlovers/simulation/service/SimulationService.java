@@ -114,10 +114,11 @@ public class SimulationService {
      */
     @Transactional(readOnly = true)
     public SimulationDetailResponse getSimulationDetail(Long userId, Long simulationId) {
-        var simulation = simulationRepository.findByIdAndUser_UserId(simulationId, userId)
+        Simulation simulation = simulationRepository.findByIdAndUser_UserId(simulationId, userId)
                 .orElseThrow(() -> new CustomException(ExceptionCode.SIMULATION_NOT_FOUND));
 
-        return SimulationDetailResponse.from(simulation);
+        AnalysisResultResponse cached = analysisService.getSimulationResult(simulation.getResultId());
+        return SimulationDetailResponse.from(simulation, cached);
     }
 
     private boolean isBlank(String s) {

@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -30,6 +31,7 @@ import java.util.List;
 public class AnalysisService {
 
     private static final long DEFAULT_TTL_SEC = 600L;
+    private static final long DEFAULT_SNAPSHOT_TTL_SEC = 2_592_000L;
 
     private final UserRepository userRepository;
     private final WebClient aiWebClient;
@@ -39,6 +41,9 @@ public class AnalysisService {
     private final SpecialContractRepository specialContractRepository;
 
     private final ObjectMapper objectMapper;
+
+    @Value("${analysis.simulation.cache-ttl-seconds:2592000}")
+    private long simulationCacheTtlSec;
 
     public AnalysisCreateResponse requestSimulation(Long userId, SimulationRunRequest runReq) {
 
@@ -102,12 +107,22 @@ public class AnalysisService {
             throw new CustomException(ExceptionCode.AI_SERVER_5XX);
         }
 
-        String resultId = tryParseAndCacheIfPossible(raw);
-        if (isBlank(resultId)) {
+        ParsedSimulationResponse parsed = tryParseSimulationResponse(raw);
+        if (parsed == null || isBlank(parsed.resultId())) {
             throw new CustomException(ExceptionCode.AI_SERVER_5XX);
         }
 
-        return AnalysisCreateResponse.of(resultId);
+        analysisCacheService.saveSourceInsuranceId(
+                parsed.resultId(),
+                runReq.getInsuranceId(),
+                resolveSnapshotTtlSec(null)
+        );
+
+        if (parsed.callback() != null && !isBlank(parsed.callback().getResult())) {
+            cacheCallbackResult(parsed.callback());
+        }
+
+        return AnalysisCreateResponse.of(parsed.resultId());
     }
 
     public void cacheCallbackResult(AnalysisCallbackRequest callback) {
@@ -116,12 +131,17 @@ public class AnalysisService {
             throw new CustomException(ExceptionCode.AI_INVALID_REQUEST);
         }
 
-        long ttlSec = (callback.getExpiresInSec() == null ? DEFAULT_TTL_SEC : callback.getExpiresInSec());
+        long ttlSec = resolveSnapshotTtlSec(callback.getExpiresInSec());
 
-        AnalysisResultResponse result = AnalysisResultResponse.fromCallback(callback);
+        AnalysisResultResponse result = enrichSnapshot(AnalysisResultResponse.fromCallback(callback), callback);
         analysisCacheService.saveResult(callback.getResultId(), result, ttlSec);
 
-        log.info("[SIMULATION CALLBACK CACHED] resultId={}, ttlSec={}", callback.getResultId(), ttlSec);
+        log.info(
+                "[SIMULATION CALLBACK CACHED] resultId={}, ttlSec={}, enriched={}",
+                callback.getResultId(),
+                ttlSec,
+                result.getSumInsured() != null
+        );
     }
 
     public AnalysisResultResponse getSimulationResult(String resultId) {
@@ -133,7 +153,12 @@ public class AnalysisService {
         if (cached == null) {
             throw new CustomException(ExceptionCode.AI_RESULT_NOT_FOUND);
         }
-        return cached;
+
+        AnalysisResultResponse enriched = enrichSnapshotIfMissing(cached);
+        if (enriched != cached) {
+            analysisCacheService.saveResult(resultId, enriched, resolveSnapshotTtlSec(null));
+        }
+        return enriched;
     }
 
     // =========================================================
@@ -149,17 +174,14 @@ public class AnalysisService {
         }
     }
 
-    private String tryParseAndCacheIfPossible(String raw) {
+    private ParsedSimulationResponse tryParseSimulationResponse(String raw) {
         ObjectMapper lenient = objectMapper.copy()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         try {
             AnalysisCallbackRequest cb = lenient.readValue(raw, AnalysisCallbackRequest.class);
             if (!isBlank(cb.getResultId())) {
-                if (!isBlank(cb.getResult())) {
-                    cacheCallbackResult(cb);
-                }
-                return cb.getResultId();
+                return new ParsedSimulationResponse(cb.getResultId(), cb);
             }
         } catch (Exception ignore) {
             // fallback 시도함
@@ -167,11 +189,104 @@ public class AnalysisService {
 
         try {
             SimulationAck ack = lenient.readValue(raw, SimulationAck.class);
-            return ack.resultId;
+            return new ParsedSimulationResponse(ack.resultId, null);
         } catch (Exception e) {
             log.error("[AI /ai/simulation PARSE ERROR] raw={}", raw, e);
             return null;
         }
+    }
+
+    private AnalysisResultResponse enrichSnapshot(AnalysisResultResponse result, AnalysisCallbackRequest callback) {
+        InsuranceProduct insurance = resolveSourceInsurance(callback);
+        if (insurance == null) {
+            log.warn(
+                    "[SIMULATION SNAPSHOT SOURCE NOT FOUND] resultId={}, insuranceCompany={}, productName={}",
+                    callback.getResultId(),
+                    callback.getInsuranceCompany(),
+                    callback.getProductName()
+            );
+            return result;
+        }
+
+        return AnalysisResultResponse.builder()
+                .resultId(result.getResultId())
+                .insuranceCompany(result.getInsuranceCompany())
+                .productName(result.getProductName())
+                .longTerm(insurance.isLongTerm())
+                .sumInsured(insurance.getSumInsured())
+                .monthlyCost(nullToEmpty(insurance.getMonthlyCost()))
+                .memo(nullToEmpty(insurance.getMemo()))
+                .specialContracts(result.getSpecialContracts())
+                .question(result.getQuestion())
+                .result(result.getResult())
+                .build();
+    }
+
+    private AnalysisResultResponse enrichSnapshotIfMissing(AnalysisResultResponse result) {
+        if (result == null || hasSnapshot(result)) {
+            return result;
+        }
+
+        InsuranceProduct insurance = resolveSourceInsurance(
+                result.getResultId(),
+                result.getInsuranceCompany(),
+                result.getProductName()
+        );
+        if (insurance == null) {
+            return result;
+        }
+
+        return AnalysisResultResponse.builder()
+                .resultId(result.getResultId())
+                .insuranceCompany(result.getInsuranceCompany())
+                .productName(result.getProductName())
+                .longTerm(insurance.isLongTerm())
+                .sumInsured(insurance.getSumInsured())
+                .monthlyCost(nullToEmpty(insurance.getMonthlyCost()))
+                .memo(nullToEmpty(insurance.getMemo()))
+                .specialContracts(result.getSpecialContracts())
+                .question(result.getQuestion())
+                .result(result.getResult())
+                .build();
+    }
+
+    private InsuranceProduct resolveSourceInsurance(AnalysisCallbackRequest callback) {
+        return resolveSourceInsurance(
+                callback.getResultId(),
+                callback.getInsuranceCompany(),
+                callback.getProductName()
+        );
+    }
+
+    private InsuranceProduct resolveSourceInsurance(String resultId, String insuranceCompany, String productName) {
+        Long insuranceId = analysisCacheService.getSourceInsuranceId(resultId);
+        if (insuranceId != null) {
+            return insuranceProductRepository.findById(insuranceId).orElse(null);
+        }
+
+        if (isBlank(insuranceCompany) || isBlank(productName)) {
+            return null;
+        }
+
+        return insuranceProductRepository
+                .findTopByInsuranceCompanyAndProductNameOrderByCreatedAtDesc(
+                        insuranceCompany,
+                        productName
+                )
+                .orElse(null);
+    }
+
+    private boolean hasSnapshot(AnalysisResultResponse result) {
+        return result.getLongTerm() != null
+                && result.getSumInsured() != null
+                && result.getMonthlyCost() != null
+                && result.getMemo() != null;
+    }
+
+    private long resolveSnapshotTtlSec(Integer callbackTtlSec) {
+        long baseTtl = simulationCacheTtlSec > 0 ? simulationCacheTtlSec : DEFAULT_SNAPSHOT_TTL_SEC;
+        long callbackTtl = callbackTtlSec == null ? DEFAULT_TTL_SEC : callbackTtlSec.longValue();
+        return Math.max(baseTtl, callbackTtl);
     }
 
     private boolean isBlank(String s) {
@@ -186,5 +301,11 @@ public class AnalysisService {
     private static class SimulationAck {
         public String resultId;
         public Integer expiresInSec;
+    }
+
+    private record ParsedSimulationResponse(
+            String resultId,
+            AnalysisCallbackRequest callback
+    ) {
     }
 }

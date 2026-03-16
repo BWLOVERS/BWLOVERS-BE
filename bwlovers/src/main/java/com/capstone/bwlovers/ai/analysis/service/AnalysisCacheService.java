@@ -42,6 +42,23 @@ public class AnalysisCacheService {
         }
     }
 
+    public void saveSourceInsuranceId(String resultId, Long insuranceId, long ttlSec) {
+        String key = AiCacheKeys.simulationSourceInsuranceKey(resultId);
+        try {
+            stringRedisTemplate.opsForValue().set(
+                    key,
+                    String.valueOf(insuranceId),
+                    Duration.ofSeconds(ttlSec)
+            );
+        } catch (RedisConnectionFailureException e) {
+            log.warn("[REDIS_CONNECTION_FAILED] key={}", key, e);
+            throw new CustomException(ExceptionCode.REDIS_CONNECTION_FAILED);
+        } catch (DataAccessException e) {
+            log.warn("[REDIS_SAVE_FAILED] key={}", key, e);
+            throw new CustomException(ExceptionCode.REDIS_SAVE_FAILED);
+        }
+    }
+
     public AnalysisResultResponse getResult(String resultId) {
         String key = AiCacheKeys.simulationResultKey(resultId);
         try {
@@ -70,12 +87,32 @@ public class AnalysisCacheService {
         }
     }
 
-    public void delete(String resultId) {
-        String key = AiCacheKeys.simulationResultKey(resultId);
+    public Long getSourceInsuranceId(String resultId) {
+        String key = AiCacheKeys.simulationSourceInsuranceKey(resultId);
         try {
-            stringRedisTemplate.delete(key);
+            String raw = stringRedisTemplate.opsForValue().get(key);
+            if (raw == null || raw.isBlank()) {
+                return null;
+            }
+            return Long.parseLong(raw);
+        } catch (NumberFormatException e) {
+            log.warn("[REDIS_INVALID_SOURCE_INSURANCE_ID] key={}", key, e);
+            return null;
+        } catch (RedisConnectionFailureException e) {
+            log.warn("[REDIS_CONNECTION_FAILED] key={}", key, e);
+            throw new CustomException(ExceptionCode.REDIS_CONNECTION_FAILED);
+        } catch (DataAccessException e) {
+            log.warn("[REDIS_READ_FAILED] key={}", key, e);
+            throw new CustomException(ExceptionCode.REDIS_READ_FAILED);
+        }
+    }
+
+    public void delete(String resultId) {
+        try {
+            stringRedisTemplate.delete(AiCacheKeys.simulationResultKey(resultId));
+            stringRedisTemplate.delete(AiCacheKeys.simulationSourceInsuranceKey(resultId));
         } catch (Exception e) {
-            log.warn("[REDIS_DELETE_FAILED] key={}", key, e);
+            log.warn("[REDIS_DELETE_FAILED] resultId={}", resultId, e);
         }
     }
 }
