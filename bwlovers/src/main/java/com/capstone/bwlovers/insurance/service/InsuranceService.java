@@ -84,7 +84,7 @@ public class InsuranceService {
                                 .insuranceCompany(company)
                                 .productName(productName)
                                 .isLongTerm(isLongTerm)
-                                .sumInsured(detail.getSumInsured() == null ? 0L : detail.getSumInsured().longValue())
+                                .sumInsured(detail.getSumInsured() == null ? "0" : detail.getSumInsured())
                                 .monthlyCost(detail.getMonthlyCost() == null ? "0" : String.valueOf(detail.getMonthlyCost()))
                                 .insuranceRecommendationReason(nullToEmpty(detail.getInsuranceRecommendationReason()))
                                 .memo(nullToEmpty(request.getMemo()))

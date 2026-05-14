@@ -19,7 +19,7 @@ public class SimulationDetailResponse {
     private String insuranceCompany;
     private String productName;
     private Boolean longTerm;
-    private Long sumInsured;
+    private String sumInsured;
     private String monthlyCost;
     private String memo;
 

@@ -16,7 +16,7 @@ public class InsuranceDetailResponse {
     private String insuranceCompany;
     private String productName;
     private boolean isLongTerm;
-    private Long sumInsured;
+    private String sumInsured;
     private String monthlyCost;
     private String insuranceRecommendationReason;
     private String memo;

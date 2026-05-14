@@ -42,7 +42,7 @@ public class InsuranceProduct {
     private boolean isLongTerm;
 
     @Column(name = "sum_insured", nullable = false)
-    private Long sumInsured;
+    private String sumInsured;
 
     @Column(name = "monthly_cost", nullable = false)
     private String monthlyCost;
