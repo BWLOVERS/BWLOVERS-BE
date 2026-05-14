@@ -27,7 +27,7 @@ public class RecommendationResponse {
     private String insuranceRecommendationReason;
 
     @JsonProperty("sum_insured")
-    private Long sumInsured;
+    private String sumInsured;
 
     @JsonProperty("monthly_cost")
     private String monthlyCost;

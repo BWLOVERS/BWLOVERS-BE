@@ -24,7 +24,7 @@ public class AnalysisResultResponse {
     private Boolean longTerm;
 
     @JsonProperty("sum_insured")
-    private Long sumInsured;
+    private String sumInsured;
 
     @JsonProperty("monthly_cost")
     private String monthlyCost;
