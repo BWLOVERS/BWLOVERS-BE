@@ -33,8 +33,8 @@ import static software.amazon.awssdk.utils.StringUtils.isBlank;
 public class RecommendationService {
 
     private static final long DEFAULT_TTL_SEC = 600L; // 10분
-    private static final Duration AI_RECOMMEND_TIMEOUT = Duration.ofSeconds(60);
-    private static final Duration AI_DETAIL_TIMEOUT = Duration.ofSeconds(15);
+    private static final long AI_REQUEST_TIMEOUT_SEC = 120L;
+    private static final long AI_DETAIL_TIMEOUT_SEC = 120L;
 
     private final UserRepository userRepository;
     private final PregnancyInfoRepository pregnancyInfoRepository;
@@ -69,7 +69,7 @@ public class RecommendationService {
                 .onStatus(s -> s.is5xxServerError(),
                         resp -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX)))
                 .bodyToMono(FastApiResponse.class)
-                .timeout(AI_RECOMMEND_TIMEOUT)
+                .timeout(Duration.ofSeconds(AI_REQUEST_TIMEOUT_SEC))
                 .doOnSubscribe(s -> log.info("[AI] POST /ai/recommend start userId={}", userId))
                 .doOnSuccess(r -> log.info("[AI] POST /ai/recommend success userId={} resultId={}",
                         userId, r == null ? null : r.getResultId()))
@@ -103,7 +103,7 @@ public class RecommendationService {
                 .onStatus(s -> s.is5xxServerError(),
                         resp -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX)))
                 .bodyToMono(String.class)
-                .timeout(AI_RECOMMEND_TIMEOUT)
+                .timeout(Duration.ofSeconds(AI_REQUEST_TIMEOUT_SEC))
                 .doOnSubscribe(s -> log.info("[AI] POST /ai/recommend(list) start userId={}", userId))
                 .doOnError(e -> log.error("[AI] POST /ai/recommend(list) error userId={}", userId, e))
                 .block();
@@ -170,7 +170,7 @@ public class RecommendationService {
                 .onStatus(s -> s.is5xxServerError(),
                         resp -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX)))
                 .bodyToMono(RecommendationResponse.class)
-                .timeout(AI_DETAIL_TIMEOUT)
+                .timeout(Duration.ofSeconds(AI_DETAIL_TIMEOUT_SEC))
                 .doOnSubscribe(s -> log.info("[AI] GET /ai/results/{}/items/{} start", resultId, itemId))
                 .doOnError(e -> log.error("[AI] GET /ai/results/{}/items/{} error", resultId, itemId, e))
                 .block();

@@ -21,6 +21,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OpenAiOcrSummarizerClient {
 
+    private static final long OPENAI_TIMEOUT_SEC = 120L;
+
     private final WebClient openAiWebClient;
 
     @Value("${openai.model:gpt-4.1-mini}")
@@ -62,7 +64,7 @@ public class OpenAiOcrSummarizerClient {
                             })
                     )
                     .bodyToMono(OpenAiResponse.class)
-                    .timeout(Duration.ofSeconds(25))
+                    .timeout(Duration.ofSeconds(OPENAI_TIMEOUT_SEC))
                     .block();
 
             if (resp == null || resp.output == null || resp.output.isEmpty()) {
