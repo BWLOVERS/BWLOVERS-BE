@@ -20,13 +20,13 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 public class AiWebClientConfig {
 
+    private static final int CONNECT_TIMEOUT_MS = 5_000;
+    private static final long RESPONSE_TIMEOUT_SEC = 120L;
+    private static final long READ_TIMEOUT_SEC = 120L;
+    private static final long WRITE_TIMEOUT_SEC = 120L;
+
     @Value("${ai.server.url}")
     private String aiServerUrl;
-
-    private static final int CONNECT_TIMEOUT_MS = 5_000;
-    private static final int RESPONSE_TIMEOUT_SEC = 60;
-    private static final int READ_TIMEOUT_SEC = 60;
-    private static final int WRITE_TIMEOUT_SEC = 60;
 
     @Bean
     public WebClient aiWebClient() {

@@ -32,6 +32,7 @@ public class AnalysisService {
 
     private static final long DEFAULT_TTL_SEC = 600L;
     private static final long DEFAULT_SNAPSHOT_TTL_SEC = 2_592_000L;
+    private static final long AI_REQUEST_TIMEOUT_SEC = 120L;
 
     private final UserRepository userRepository;
     private final WebClient aiWebClient;
@@ -98,7 +99,7 @@ public class AnalysisService {
                 .onStatus(s -> s.is5xxServerError(),
                         resp -> Mono.error(new CustomException(ExceptionCode.AI_SERVER_5XX)))
                 .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(25))
+                .timeout(Duration.ofSeconds(AI_REQUEST_TIMEOUT_SEC))
                 .block();
 
         log.info("[AI /ai/simulation RAW RESPONSE] {}", raw);
