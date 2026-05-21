@@ -13,7 +13,9 @@ public interface InsuranceProductRepository extends JpaRepository<InsuranceProdu
     Optional<InsuranceProduct> findTopByInsuranceCompanyAndProductNameOrderByCreatedAtDesc(String insuranceCompany, String productName);
     List<InsuranceProduct> findAllByUser_UserIdOrderByCreatedAtDesc(Long userId);
 
-    // N+1 문제 방지를 위해 Fetch Join이 적용된 레포지토리 메서드
     @Query("SELECT DISTINCT p FROM InsuranceProduct p LEFT JOIN FETCH p.specialContracts WHERE p.user.userId = :userId ORDER BY p.createdAt DESC")
     List<InsuranceProduct> findAllByUserIdWithContracts(@Param("userId") Long userId);
+
+    @Query("SELECT DISTINCT p FROM InsuranceProduct p LEFT JOIN FETCH p.specialContracts WHERE p.insuranceId = :insuranceId")
+    Optional<InsuranceProduct> findByInsuranceIdWithContracts(@Param("insuranceId") Long insuranceId);
 }

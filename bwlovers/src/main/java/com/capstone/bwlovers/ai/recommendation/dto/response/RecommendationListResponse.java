@@ -9,6 +9,7 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 @Getter
 @Setter
@@ -59,9 +60,7 @@ public class RecommendationListResponse {
         private Integer specialContractCount = 0;
 
         /**
-         * 응답 직전에 count를 무조건 현재 specialContracts 기준으로 보정함
-         * - FastAPI가 special_contract_count를 잘못 주거나(0), 안 주거나(null) 상관없이
-         * - special_contracts가 있으면 size로 맞춰짐
+         * 특약 수를 현재 specialContracts 기준으로 보정합니다.
          */
         public void normalizeCounts() {
             if (this.specialContracts == null) {
@@ -105,92 +104,101 @@ public class RecommendationListResponse {
         private String textSnippet;
     }
 
-    // =========================================================
-    // callback -> 리스트 변환
-    // =========================================================
     public static RecommendationListResponse fromCallback(RecommendationCallbackRequest callback) {
-
-        RecommendationListResponse res = new RecommendationListResponse();
+        RecommendationListResponse response = new RecommendationListResponse();
 
         if (callback == null) {
-            res.setItems(Collections.emptyList());
-            return res;
+            response.setItems(Collections.emptyList());
+            return response;
         }
 
-        res.setResultId(callback.getResultId());
-        res.setExpiresInSec(callback.getExpiresInSec());
+        response.setResultId(callback.getResultId());
+        response.setExpiresInSec(callback.getExpiresInSec());
 
-        if (callback.getItems() == null || callback.getItems().isEmpty()) {
-            res.setItems(Collections.emptyList());
-            return res;
+        if (callback.getItemsOrEmpty().isEmpty()) {
+            response.setItems(Collections.emptyList());
+            return response;
         }
 
         List<Item> listItems = new ArrayList<>();
 
-        for (RecommendationCallbackRequest.Item it : callback.getItems()) {
-            if (it == null) continue;
-
-            Item item = new Item();
-            item.setItemId(it.getItemId());
-            item.setInsuranceCompany(it.getInsuranceCompany());
-            item.setProductName(it.getProductName());
-            item.setIsLongTerm(it.getIsLongTerm());
-            item.setSumInsured(it.getSumInsured());
-            item.setMonthlyCost(it.getMonthlyCost());
-            item.setInsuranceRecommendationReason(it.getInsuranceRecommendationReason());
-
-            // special_contracts 변환
-            if (it.getSpecialContracts() != null && !it.getSpecialContracts().isEmpty()) {
-                List<SpecialContract> contracts = it.getSpecialContracts().stream()
-                        .map(sc -> {
-                            SpecialContract c = new SpecialContract();
-                            c.setContractName(sc.getContractName());
-                            c.setContractDescription(sc.getContractDescription());
-                            c.setContractRecommendationReason(sc.getContractRecommendationReason());
-                            c.setKeyFeatures(sc.getKeyFeatures());
-                            c.setPageNumber(sc.getPageNumber());
-                            return c;
-                        })
-                        .toList();
-                item.setSpecialContracts(contracts);
-            } else {
-                item.setSpecialContracts(Collections.emptyList());
+        for (RecommendationCallbackRequest.Item item : callback.getItemsOrEmpty()) {
+            if (item == null) {
+                continue;
             }
-
-            // evidence_sources 변환
-            if (it.getEvidenceSources() != null && !it.getEvidenceSources().isEmpty()) {
-                List<EvidenceSource> sources = it.getEvidenceSources().stream()
-                        .map(es -> {
-                            EvidenceSource e = new EvidenceSource();
-                            e.setPageNumber(es.getPageNumber());
-                            e.setTextSnippet(es.getTextSnippet());
-                            return e;
-                        })
-                        .toList();
-                item.setEvidenceSources(sources);
-            } else {
-                item.setEvidenceSources(Collections.emptyList());
-            }
-
-            // count는 무조건 현재 specialContracts 기준으로 보정
-            item.normalizeCounts();
-
-            listItems.add(item);
+            listItems.add(toItem(item));
         }
 
-        res.setItems(listItems);
-        return res;
+        response.setItems(listItems);
+        return response;
     }
 
     /**
-     * FastAPI 응답을 그대로 파싱해서 받은 경우에도 count를 보정할 수 있게 유틸 제공함
-     * - Service에서 list 파싱 후 이 메서드 호출하면 됨
+     * FastAPI 응답을 그대로 파싱한 뒤에도 특약 수를 재보정할 수 있습니다.
      */
     public void normalizeAllCounts() {
-        if (this.items == null) return;
-        for (Item it : this.items) {
-            if (it == null) continue;
-            it.normalizeCounts();
+        if (this.items == null) {
+            return;
         }
+
+        this.items.stream()
+                .filter(Objects::nonNull)
+                .forEach(Item::normalizeCounts);
+    }
+
+    private static Item toItem(RecommendationCallbackRequest.Item source) {
+        Item item = new Item();
+        item.setItemId(source.getItemId());
+        item.setInsuranceCompany(source.getInsuranceCompany());
+        item.setProductName(source.getProductName());
+        item.setIsLongTerm(source.getIsLongTerm());
+        item.setSumInsured(source.getSumInsured());
+        item.setMonthlyCost(source.getMonthlyCost());
+        item.setInsuranceRecommendationReason(source.getInsuranceRecommendationReason());
+        item.setSpecialContracts(toSpecialContracts(source.getSpecialContracts()));
+        item.setEvidenceSources(toEvidenceSources(source.getEvidenceSources()));
+        item.normalizeCounts();
+        return item;
+    }
+
+    private static List<SpecialContract> toSpecialContracts(
+            List<RecommendationCallbackRequest.SpecialContract> source
+    ) {
+        if (source == null || source.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return source.stream()
+                .map(RecommendationListResponse::toSpecialContract)
+                .toList();
+    }
+
+    private static List<EvidenceSource> toEvidenceSources(
+            List<RecommendationCallbackRequest.EvidenceSource> source
+    ) {
+        if (source == null || source.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return source.stream()
+                .map(RecommendationListResponse::toEvidenceSource)
+                .toList();
+    }
+
+    private static SpecialContract toSpecialContract(RecommendationCallbackRequest.SpecialContract source) {
+        SpecialContract contract = new SpecialContract();
+        contract.setContractName(source.getContractName());
+        contract.setContractDescription(source.getContractDescription());
+        contract.setContractRecommendationReason(source.getContractRecommendationReason());
+        contract.setKeyFeatures(source.getKeyFeatures());
+        contract.setPageNumber(source.getPageNumber());
+        return contract;
+    }
+
+    private static EvidenceSource toEvidenceSource(RecommendationCallbackRequest.EvidenceSource source) {
+        EvidenceSource evidenceSource = new EvidenceSource();
+        evidenceSource.setPageNumber(source.getPageNumber());
+        evidenceSource.setTextSnippet(source.getTextSnippet());
+        return evidenceSource;
     }
 }

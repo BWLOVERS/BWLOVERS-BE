@@ -20,9 +20,7 @@ import java.time.Duration;
 public class RecommendationCacheService {
 
     private final StringRedisTemplate stringRedisTemplate;
-
-    // JSON 직렬화/역직렬화는 ObjectMapper로 통일
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public void saveList(String resultId, RecommendationListResponse list, long ttlSec) {
         String key = AiCacheKeys.recommendListKey(resultId);

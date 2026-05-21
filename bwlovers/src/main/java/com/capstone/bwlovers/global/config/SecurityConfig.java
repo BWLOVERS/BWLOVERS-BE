@@ -24,12 +24,8 @@ public class SecurityConfig {
 
     private final CorsConfigurationSource corsConfigurationSource;
     private final JwtProvider jwtProvider;
+    private final JwtExceptionHandler jwtExceptionHandler;
     private final CustomOAuth2UserService customOAuth2UserService;
-
-    @Bean
-    public JwtExceptionHandler jwtExceptionHandler() {
-        return new JwtExceptionHandler();
-    }
 
     @Bean
     public OAuth2SuccessHandler oAuth2SuccessHandler() {
@@ -57,13 +53,11 @@ public class SecurityConfig {
 
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // 401/403을 JSON으로 통일함
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(jwtExceptionHandler())
-                        .accessDeniedHandler(jwtExceptionHandler())
+                        .authenticationEntryPoint(jwtExceptionHandler)
+                        .accessDeniedHandler(jwtExceptionHandler)
                 )
 
-                // 인가 정책(최소 예시)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/",
@@ -77,13 +71,11 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // 네이버 OAuth2 로그인 연결
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         .failureHandler(oAuth2FailureHandler())
                 )
 
-                // JWT 필터 장착
                 .addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

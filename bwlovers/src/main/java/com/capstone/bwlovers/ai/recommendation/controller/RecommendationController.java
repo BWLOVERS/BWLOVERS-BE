@@ -8,7 +8,6 @@ import com.capstone.bwlovers.ai.recommendation.service.RecommendationService;
 import com.capstone.bwlovers.auth.domain.User;
 import com.capstone.bwlovers.global.exception.CustomException;
 import com.capstone.bwlovers.global.exception.ExceptionCode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -24,11 +23,9 @@ public class RecommendationController {
 
     private final RecommendationService recommendationService;
     private final RecommendationCacheService recommendationCacheService;
-    private final ObjectMapper objectMapper;
 
     /**
      * 추천 요청 POST /ai/recommend
-     * - 기존 그대로: FastAPI 호출해서 resultId 포함된 리스트 받음
      */
     @PostMapping("/recommend")
     public RecommendationListResponse recommendList(@AuthenticationPrincipal User user) {
@@ -36,8 +33,7 @@ public class RecommendationController {
     }
 
     /**
-     * 보험 추천 리스트 조회(저장 전) POST /ai/recommend/{resultId}
-     * - Redis에서 리스트 형태로 꺼내줌
+     * 보험 추천 리스트 조회 GET /ai/recommend/{resultId}
      */
     @GetMapping("/recommend/{resultId}")
     public RecommendationListResponse getListFromRedis(@AuthenticationPrincipal User user,
@@ -51,7 +47,6 @@ public class RecommendationController {
 
     /**
      * 보험 추천 상세 조회 GET /ai/results/{resultId}/items/{itemId}
-     * - Redis에서 상세 꺼내줌 (없으면 기존 FastAPI 조회로 fallback 하고 싶으면 AiService에서 처리 가능함)
      */
     @GetMapping("/results/{resultId}/items/{itemId}")
     public RecommendationResponse getDetail(@AuthenticationPrincipal User user,
@@ -59,20 +54,19 @@ public class RecommendationController {
                                             @PathVariable String itemId) {
 
         RecommendationResponse cached = recommendationCacheService.getDetail(resultId, itemId);
-        if (cached != null) return cached;
+        if (cached != null) {
+            return cached;
+        }
 
-        // fallback(선택): 기존 FastAPI 조회 유지
         return recommendationService.fetchAiResultDetail(user.getUserId(), resultId, itemId);
     }
 
     /**
-     * 요청 콜백 POST /ai/callback/recommend
-     * - 여기서 Redis에 "리스트/상세" 둘 다 저장함
+     * 추천 결과 콜백 POST /ai/callback/recommend
      */
-    @PostMapping(path="/callback/recommend", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(path = "/callback/recommend", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> receive(@RequestBody RecommendationCallbackRequest body) {
         recommendationService.cacheCallbackResult(body);
         return ResponseEntity.ok().build();
     }
-
 }
