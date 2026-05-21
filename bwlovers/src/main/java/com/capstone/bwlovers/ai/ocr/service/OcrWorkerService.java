@@ -1,6 +1,9 @@
 package com.capstone.bwlovers.ai.ocr.service;
 
-import com.capstone.bwlovers.ai.ocr.domain.*;
+import com.capstone.bwlovers.ai.ocr.domain.OcrJobCache;
+import com.capstone.bwlovers.ai.ocr.domain.OcrJobStatus;
+import com.capstone.bwlovers.ai.ocr.domain.OcrPageFileRef;
+import com.capstone.bwlovers.ai.ocr.domain.OcrResult;
 import com.capstone.bwlovers.ai.ocr.infra.cache.OcrJobCacheRepository;
 import com.capstone.bwlovers.ai.ocr.infra.ocrclient.ClovaOcrClient;
 import com.capstone.bwlovers.ai.ocr.infra.llm.OpenAiOcrSummarizerClient;
@@ -23,7 +26,7 @@ public class OcrWorkerService {
     private final ClovaOcrClient clovaOcrClient;
 
     private final OcrTextProcessor textProcessor;
-    private final OpenAiOcrSummarizerClient gptSummarizer;
+    private final OpenAiOcrSummarizerClient ocrSummarizer;
 
     @Async("ocrExecutor")
     public void processAsync(String jobId) {
@@ -58,9 +61,7 @@ public class OcrWorkerService {
             cacheRepository.save(cache);
 
             String merged = textProcessor.normalizeAndMerge(pageTexts);
-
-            // GPT로 요약/경고/용어풀이 생성함 (OcrResult 스키마 그대로)
-            OcrResult result = gptSummarizer.summarize(merged);
+            OcrResult result = ocrSummarizer.summarize(merged);
 
             cache.setResult(result);
             cache.setStatus(OcrJobStatus.DONE);
@@ -75,11 +76,13 @@ public class OcrWorkerService {
             cacheRepository.save(cache);
 
         } finally {
-            // 저장 안 함 정책: 처리 후 S3 삭제함
             try {
                 OcrJobCache latest = cacheRepository.find(jobId).orElse(null);
-                if (latest != null) fileStorage.deleteJobFiles(jobId, latest.getFiles());
-            } catch (Exception ignore) {}
+                if (latest != null) {
+                    fileStorage.deleteJobFiles(jobId, latest.getFiles());
+                }
+            } catch (Exception ignored) {
+            }
         }
     }
 

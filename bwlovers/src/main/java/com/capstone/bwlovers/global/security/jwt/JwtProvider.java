@@ -4,7 +4,10 @@ import com.capstone.bwlovers.auth.domain.User;
 import com.capstone.bwlovers.auth.repository.UserRepository;
 import com.capstone.bwlovers.global.exception.CustomException;
 import com.capstone.bwlovers.global.exception.ExceptionCode;
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,7 +65,7 @@ public class JwtProvider {
                 .claim("typ", type)
                 .issuedAt(now)
                 .expiration(exp)
-                .signWith(key, SignatureAlgorithm.HS256)
+                .signWith(key)
                 .compact();
     }
 
@@ -79,17 +82,17 @@ public class JwtProvider {
     }
 
     /**
-     * 토큰 검증 + 에러를 ExceptionCode로 변환해서 던짐
+     * 토큰을 검증하고, 실패 시 적절한 예외 코드로 변환합니다.
      */
     public void validateOrThrow(String token) {
         if (token == null || token.isBlank()) {
             throw new CustomException(ExceptionCode.AUTH_TOKEN_EMPTY);
         }
-        parseClaims(token); // 여기서 expired/invalid를 CustomException으로 던짐
+        parseClaims(token);
     }
 
     /**
-     * Claims 파싱 (여기서 expired/invalid를 의미 있는 코드로 매핑)
+     * Claims 파싱 결과를 반환합니다.
      */
     public Claims parseClaims(String token) {
         try {
@@ -110,7 +113,6 @@ public class JwtProvider {
         String typ = claims.get("typ", String.class);
         return "refresh".equals(typ);
     }
-
 
     public Authentication getAuthentication(String token) {
         Claims claims = parseClaims(token);
