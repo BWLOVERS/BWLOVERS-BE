@@ -51,7 +51,7 @@ public class OcrWorkerService {
                         text == null ? "null" : text.substring(0, Math.min(120, text.length()))
                 );
 
-                pageTexts.add(text);
+                pageTexts.add(text == null ? "" : text);
 
                 cache.setDonePages(cache.getDonePages() + 1);
                 cacheRepository.save(cache);
@@ -61,7 +61,12 @@ public class OcrWorkerService {
             cacheRepository.save(cache);
 
             String merged = textProcessor.normalizeAndMerge(pageTexts);
-            OcrResult result = ocrSummarizer.summarize(merged);
+            OcrResult result = textProcessor.buildGuardResultIfNeeded(merged);
+            if (result == null) {
+                result = ocrSummarizer.summarize(merged);
+            }
+
+            result = result.normalized();
 
             cache.setResult(result);
             cache.setStatus(OcrJobStatus.DONE);
