@@ -115,4 +115,44 @@ public class AnalysisCacheService {
             log.warn("[REDIS_DELETE_FAILED] resultId={}", resultId, e);
         }
     }
+
+    public void saveResultSafely(String resultId, AnalysisResultResponse result, long ttlSec) {
+        try {
+            saveResult(resultId, result, ttlSec);
+        } catch (CustomException e) {
+            log.warn("[SIMULATION_CACHE_SAVE_BYPASS] resultId={}, ttlSec={}", resultId, ttlSec, e);
+        }
+    }
+
+    public void saveSourceInsuranceIdSafely(String resultId, Long insuranceId, long ttlSec) {
+        try {
+            saveSourceInsuranceId(resultId, insuranceId, ttlSec);
+        } catch (CustomException e) {
+            log.warn(
+                    "[SIMULATION_SOURCE_CACHE_SAVE_BYPASS] resultId={}, insuranceId={}, ttlSec={}",
+                    resultId,
+                    insuranceId,
+                    ttlSec,
+                    e
+            );
+        }
+    }
+
+    public AnalysisResultResponse findResultSafely(String resultId) {
+        try {
+            return getResult(resultId);
+        } catch (CustomException e) {
+            log.warn("[SIMULATION_CACHE_READ_BYPASS] resultId={}", resultId, e);
+            return null;
+        }
+    }
+
+    public Long findSourceInsuranceIdSafely(String resultId) {
+        try {
+            return getSourceInsuranceId(resultId);
+        } catch (CustomException e) {
+            log.warn("[SIMULATION_SOURCE_CACHE_READ_BYPASS] resultId={}", resultId, e);
+            return null;
+        }
+    }
 }

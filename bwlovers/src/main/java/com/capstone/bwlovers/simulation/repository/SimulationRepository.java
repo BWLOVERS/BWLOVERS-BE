@@ -10,6 +10,8 @@ import java.util.Optional;
 public interface SimulationRepository extends JpaRepository<Simulation, Long> {
     boolean existsByResultId(String resultId);
     Optional<Simulation> findByResultId(String resultId);
+    @EntityGraph(attributePaths = "contracts")
+    Optional<Simulation> findWithContractsByResultId(String resultId);
     List<Simulation> findByUser_UserIdOrderByCreatedAtAsc(Long userId);
     @EntityGraph(attributePaths = "contracts")
     Optional<Simulation> findByIdAndUser_UserId(Long simulationId, Long userId);

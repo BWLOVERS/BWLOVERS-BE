@@ -8,6 +8,7 @@ import com.capstone.bwlovers.global.exception.ExceptionCode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecommendationCacheService {
@@ -77,6 +79,46 @@ public class RecommendationCacheService {
             throw new CustomException(ExceptionCode.JSON_SERIALIZATION_FAILED);
         } catch (DataAccessException e) {
             throw new CustomException(ExceptionCode.REDIS_READ_FAILED);
+        }
+    }
+
+    public void saveListSafely(String resultId, RecommendationListResponse list, long ttlSec) {
+        try {
+            saveList(resultId, list, ttlSec);
+        } catch (CustomException e) {
+            log.warn("[RECOMMENDATION_CACHE_SAVE_BYPASS] resultId={}, ttlSec={}", resultId, ttlSec, e);
+        }
+    }
+
+    public void saveDetailSafely(String resultId, String itemId, RecommendationResponse detail, long ttlSec) {
+        try {
+            saveDetail(resultId, itemId, detail, ttlSec);
+        } catch (CustomException e) {
+            log.warn(
+                    "[RECOMMENDATION_CACHE_SAVE_BYPASS] resultId={}, itemId={}, ttlSec={}",
+                    resultId,
+                    itemId,
+                    ttlSec,
+                    e
+            );
+        }
+    }
+
+    public RecommendationListResponse findListSafely(String resultId) {
+        try {
+            return getList(resultId);
+        } catch (CustomException e) {
+            log.warn("[RECOMMENDATION_CACHE_READ_BYPASS] resultId={}", resultId, e);
+            return null;
+        }
+    }
+
+    public RecommendationResponse findDetailSafely(String resultId, String itemId) {
+        try {
+            return getDetail(resultId, itemId);
+        } catch (CustomException e) {
+            log.warn("[RECOMMENDATION_CACHE_READ_BYPASS] resultId={}, itemId={}", resultId, itemId, e);
+            return null;
         }
     }
 }

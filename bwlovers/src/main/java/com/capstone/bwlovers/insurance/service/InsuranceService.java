@@ -1,7 +1,7 @@
 package com.capstone.bwlovers.insurance.service;
 
 import com.capstone.bwlovers.ai.recommendation.dto.response.RecommendationResponse;
-import com.capstone.bwlovers.ai.recommendation.service.RecommendationCacheService;
+import com.capstone.bwlovers.ai.recommendation.service.RecommendationService;
 import com.capstone.bwlovers.auth.domain.User;
 import com.capstone.bwlovers.auth.repository.UserRepository;
 import com.capstone.bwlovers.global.exception.CustomException;
@@ -29,7 +29,7 @@ public class InsuranceService {
 
     private final UserRepository userRepository;
     private final InsuranceProductRepository insuranceProductRepository;
-    private final RecommendationCacheService recommendationCacheService;
+    private final RecommendationService recommendationService;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -37,7 +37,8 @@ public class InsuranceService {
         User user = findUser(userId);
         validateSaveRequest(request);
 
-        RecommendationResponse detail = recommendationCacheService.getDetail(
+        RecommendationResponse detail = recommendationService.fetchAiResultDetail(
+                userId,
                 request.getResultId(),
                 request.getItemId()
         );
