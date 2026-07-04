@@ -13,7 +13,6 @@ import com.capstone.bwlovers.global.exception.CustomException;
 import com.capstone.bwlovers.global.exception.ExceptionCode;
 import com.capstone.bwlovers.health.domain.HealthStatus;
 import com.capstone.bwlovers.health.repository.HealthStatusRepository;
-import com.capstone.bwlovers.insurance.repository.InsuranceProductRepository;
 import com.capstone.bwlovers.pregnancy.domain.PregnancyInfo;
 import com.capstone.bwlovers.pregnancy.repository.PregnancyInfoRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,7 +41,6 @@ public class RecommendationService {
 
     private final WebClient aiWebClient;
     private final RecommendationCacheService recommendationCacheService;
-    private final InsuranceProductRepository insuranceProductRepository;
     private final ObjectMapper objectMapper;
 
     /**
@@ -127,18 +125,31 @@ public class RecommendationService {
 
         long ttlSec = (list.getExpiresInSec() == null ? DEFAULT_TTL_SEC : list.getExpiresInSec());
 
-        recommendationCacheService.saveList(list.getResultId(), list, ttlSec);
+        recommendationCacheService.saveListSafely(list.getResultId(), list, ttlSec);
 
         if (list.getItems() != null) {
             for (var item : list.getItems()) {
                 if (item == null || isBlank(item.getItemId())) continue;
 
                 RecommendationResponse detail = RecommendationResponse.fromListItem(item);
-                recommendationCacheService.saveDetail(list.getResultId(), item.getItemId(), detail, ttlSec);
+                recommendationCacheService.saveDetailSafely(list.getResultId(), item.getItemId(), detail, ttlSec);
             }
         }
 
         return list;
+    }
+
+    public RecommendationListResponse getRecommendationList(String resultId) {
+        if (isBlank(resultId)) {
+            throw new CustomException(ExceptionCode.AI_INVALID_REQUEST);
+        }
+
+        RecommendationListResponse cached = recommendationCacheService.getList(resultId);
+        if (cached == null) {
+            throw new CustomException(ExceptionCode.AI_RESULT_NOT_FOUND);
+        }
+
+        return cached;
     }
 
     /**
@@ -154,7 +165,7 @@ public class RecommendationService {
             throw new CustomException(ExceptionCode.AI_INVALID_REQUEST);
         }
 
-        RecommendationResponse cached = recommendationCacheService.getDetail(resultId, itemId);
+        RecommendationResponse cached = recommendationCacheService.findDetailSafely(resultId, itemId);
         if (cached != null) {
             log.info("[FETCH DETAIL] Redis cache HIT. resultId={} itemId={}", resultId, itemId);
             return cached;
@@ -176,7 +187,7 @@ public class RecommendationService {
                 .block();
 
         if (fresh != null) {
-            recommendationCacheService.saveDetail(resultId, itemId, fresh, DEFAULT_TTL_SEC);
+            recommendationCacheService.saveDetailSafely(resultId, itemId, fresh, DEFAULT_TTL_SEC);
         }
 
         return fresh;

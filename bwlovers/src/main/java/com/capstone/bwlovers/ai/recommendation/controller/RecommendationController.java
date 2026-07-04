@@ -3,11 +3,8 @@ package com.capstone.bwlovers.ai.recommendation.controller;
 import com.capstone.bwlovers.ai.recommendation.dto.request.RecommendationCallbackRequest;
 import com.capstone.bwlovers.ai.recommendation.dto.response.RecommendationListResponse;
 import com.capstone.bwlovers.ai.recommendation.dto.response.RecommendationResponse;
-import com.capstone.bwlovers.ai.recommendation.service.RecommendationCacheService;
 import com.capstone.bwlovers.ai.recommendation.service.RecommendationService;
 import com.capstone.bwlovers.auth.domain.User;
-import com.capstone.bwlovers.global.exception.CustomException;
-import com.capstone.bwlovers.global.exception.ExceptionCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -22,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 public class RecommendationController {
 
     private final RecommendationService recommendationService;
-    private final RecommendationCacheService recommendationCacheService;
 
     /**
      * 추천 요청 POST /ai/recommend
@@ -38,11 +34,7 @@ public class RecommendationController {
     @GetMapping("/recommend/{resultId}")
     public RecommendationListResponse getListFromRedis(@AuthenticationPrincipal User user,
                                                        @PathVariable String resultId) {
-        RecommendationListResponse cached = recommendationCacheService.getList(resultId);
-        if (cached == null) {
-            throw new CustomException(ExceptionCode.AI_RESULT_NOT_FOUND);
-        }
-        return cached;
+        return recommendationService.getRecommendationList(resultId);
     }
 
     /**
@@ -52,12 +44,6 @@ public class RecommendationController {
     public RecommendationResponse getDetail(@AuthenticationPrincipal User user,
                                             @PathVariable String resultId,
                                             @PathVariable String itemId) {
-
-        RecommendationResponse cached = recommendationCacheService.getDetail(resultId, itemId);
-        if (cached != null) {
-            return cached;
-        }
-
         return recommendationService.fetchAiResultDetail(user.getUserId(), resultId, itemId);
     }
 

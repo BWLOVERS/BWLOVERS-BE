@@ -12,6 +12,8 @@ import com.capstone.bwlovers.insurance.domain.InsuranceProduct;
 import com.capstone.bwlovers.insurance.domain.SpecialContract;
 import com.capstone.bwlovers.insurance.repository.InsuranceProductRepository;
 import com.capstone.bwlovers.insurance.repository.SpecialContractRepository;
+import com.capstone.bwlovers.simulation.domain.Simulation;
+import com.capstone.bwlovers.simulation.repository.SimulationRepository;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +42,7 @@ public class AnalysisService {
 
     private final InsuranceProductRepository insuranceProductRepository;
     private final SpecialContractRepository specialContractRepository;
+    private final SimulationRepository simulationRepository;
 
     private final ObjectMapper objectMapper;
 
@@ -113,7 +116,7 @@ public class AnalysisService {
             throw new CustomException(ExceptionCode.AI_SERVER_5XX);
         }
 
-        analysisCacheService.saveSourceInsuranceId(
+        analysisCacheService.saveSourceInsuranceIdSafely(
                 parsed.resultId(),
                 runReq.getInsuranceId(),
                 resolveSnapshotTtlSec(null)
@@ -150,15 +153,34 @@ public class AnalysisService {
             throw new CustomException(ExceptionCode.AI_INVALID_REQUEST);
         }
 
-        AnalysisResultResponse cached = analysisCacheService.getResult(resultId);
-        if (cached == null) {
+        AnalysisResultResponse cached = null;
+        CustomException cacheReadFailure = null;
+
+        try {
+            cached = analysisCacheService.getResult(resultId);
+        } catch (CustomException e) {
+            log.warn("[SIMULATION_CACHE_READ_BYPASS] resultId={}", resultId, e);
+            cacheReadFailure = e;
+        }
+
+        if (cached != null) {
+            AnalysisResultResponse enriched = enrichSnapshotIfMissing(cached);
+            if (enriched != cached) {
+                analysisCacheService.saveResultSafely(resultId, enriched, resolveSnapshotTtlSec(null));
+            }
+            return enriched;
+        }
+
+        AnalysisResultResponse persisted = loadSimulationResultFromDatabase(resultId);
+        if (persisted == null) {
+            if (cacheReadFailure != null) {
+                throw cacheReadFailure;
+            }
             throw new CustomException(ExceptionCode.AI_RESULT_NOT_FOUND);
         }
 
-        AnalysisResultResponse enriched = enrichSnapshotIfMissing(cached);
-        if (enriched != cached) {
-            analysisCacheService.saveResult(resultId, enriched, resolveSnapshotTtlSec(null));
-        }
+        AnalysisResultResponse enriched = enrichSnapshotIfMissing(persisted);
+        analysisCacheService.saveResultSafely(resultId, enriched, resolveSnapshotTtlSec(null));
         return enriched;
     }
 
@@ -260,7 +282,7 @@ public class AnalysisService {
     }
 
     private InsuranceProduct resolveSourceInsurance(String resultId, String insuranceCompany, String productName) {
-        Long insuranceId = analysisCacheService.getSourceInsuranceId(resultId);
+        Long insuranceId = analysisCacheService.findSourceInsuranceIdSafely(resultId);
         if (insuranceId != null) {
             return insuranceProductRepository.findById(insuranceId).orElse(null);
         }
@@ -282,6 +304,36 @@ public class AnalysisService {
                 && result.getSumInsured() != null
                 && result.getMonthlyCost() != null
                 && result.getMemo() != null;
+    }
+
+    private AnalysisResultResponse loadSimulationResultFromDatabase(String resultId) {
+        return simulationRepository.findWithContractsByResultId(resultId)
+                .map(this::toAnalysisResultResponse)
+                .orElse(null);
+    }
+
+    private AnalysisResultResponse toAnalysisResultResponse(Simulation simulation) {
+        return AnalysisResultResponse.builder()
+                .resultId(simulation.getResultId())
+                .insuranceCompany(simulation.getInsuranceCompany())
+                .productName(simulation.getProductName())
+                .longTerm(null)
+                .sumInsured(null)
+                .monthlyCost(null)
+                .memo(null)
+                .specialContracts(
+                        simulation.getContracts() == null
+                                ? List.of()
+                                : simulation.getContracts().stream()
+                                .map(contract -> AnalysisResultResponse.SpecialContract.of(
+                                        contract.getContractName(),
+                                        contract.getPageNumber() == null ? null : contract.getPageNumber().intValue()
+                                ))
+                                .toList()
+                )
+                .question(simulation.getQuestion())
+                .result(simulation.getResult())
+                .build();
     }
 
     private long resolveSnapshotTtlSec(Integer callbackTtlSec) {
