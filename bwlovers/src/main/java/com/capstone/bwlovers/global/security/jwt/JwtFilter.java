@@ -1,5 +1,6 @@
 package com.capstone.bwlovers.global.security.jwt;
 
+import com.capstone.bwlovers.global.exception.CustomException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +13,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 public class JwtFilter extends OncePerRequestFilter {
+
+    public static final String JWT_EXCEPTION_CODE_ATTR = "jwtExceptionCode";
 
     private final JwtProvider jwtProvider;
 
@@ -28,8 +31,14 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String token = resolveBearerToken(request);
 
-        if (StringUtils.hasText(token) && jwtProvider.validate(token)) {
-            SecurityContextHolder.getContext().setAuthentication(jwtProvider.getAuthentication(token));
+        if (StringUtils.hasText(token)) {
+            try {
+                jwtProvider.validateAccessToken(token);
+                SecurityContextHolder.getContext().setAuthentication(jwtProvider.getAuthentication(token));
+            } catch (CustomException e) {
+                SecurityContextHolder.clearContext();
+                request.setAttribute(JWT_EXCEPTION_CODE_ATTR, e.getExceptionCode());
+            }
         }
 
         filterChain.doFilter(request, response);

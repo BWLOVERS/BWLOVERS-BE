@@ -82,6 +82,21 @@ public class JwtProvider {
     }
 
     /**
+     * 보호된 API에는 access 토큰만 허용합니다.
+     */
+    public void validateAccessToken(String token) {
+        if (token == null || token.isBlank()) {
+            throw new CustomException(ExceptionCode.AUTH_TOKEN_EMPTY);
+        }
+
+        Claims claims = parseClaims(token);
+        String typ = claims.get("typ", String.class);
+        if (!"access".equals(typ)) {
+            throw new CustomException(ExceptionCode.AUTH_TOKEN_INVALID);
+        }
+    }
+
+    /**
      * 토큰을 검증하고, 실패 시 적절한 예외 코드로 변환합니다.
      */
     public void validateOrThrow(String token) {
