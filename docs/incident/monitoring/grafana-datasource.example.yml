@@ -1,0 +1,9 @@
+apiVersion: 1
+datasources:
+  - name: Incident Prometheus
+    type: prometheus
+    uid: incident-prometheus
+    access: proxy
+    # Adjust if Grafana and Prometheus do not run on the same host.
+    url: http://localhost:9090
+    editable: true
