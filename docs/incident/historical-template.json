@@ -1,0 +1,21 @@
+{
+  "incidentId": "historical-replace-me",
+  "sourceType": "HISTORICAL",
+  "service": "bwlovers-api",
+  "revision": "simulation-revision",
+  "windowStart": "2026-08-01T10:00:00Z",
+  "windowEnd": "2026-08-01T10:05:00Z",
+  "metricScope": "실제 수집 구간, 리비전, 메모리 인스턴스와 DB 풀의 집계 범위를 작성하세요.",
+  "requestCount": null,
+  "p95Latency": null,
+  "status429Count": null,
+  "status5xxCount": null,
+  "memoryUsageMb": null,
+  "memoryLimitMb": null,
+  "activeInstanceCount": null,
+  "maxInstanceCount": null,
+  "dbActiveConnections": null,
+  "dbMaxConnections": null,
+  "relatedLogs": [],
+  "evidenceReference": ""
+}

@@ -28,6 +28,8 @@ dependencies {
     // Web / JSON
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     // Security
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
@@ -60,4 +62,50 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+tasks.register('incidentDiagnosis', JavaExec) {
+    group = 'application'
+    description = 'Analyzes incident JSON and optionally sends a diagnosis to Discord without starting Spring.'
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.capstone.bwlovers.ops.incident.IncidentDiagnosisCli'
+}
+
+def loadTestProperties = [
+        'loadTestUrl',
+        'loadTestMethod',
+        'loadTestConcurrentUsers',
+        'loadTestTotalRequests',
+        'loadTestBodyFile',
+        'loadTestHeadersFile',
+        'loadTestContentType',
+        'loadTestAuthToken',
+        'loadTestConnectTimeoutMs',
+        'loadTestRequestTimeoutMs',
+        'loadTestClassifierField',
+        'loadTestConfirmedValues',
+        'loadTestWaitingValues',
+        'loadTestDuplicateValues',
+        'loadTestConfirmedStatuses',
+        'loadTestWaitingStatuses',
+        'loadTestDuplicateStatuses',
+        'loadTestConfirmedPatterns',
+        'loadTestWaitingPatterns',
+        'loadTestDuplicatePatterns'
+]
+
+tasks.register('registrationLoadTest', JavaExec) {
+    group = 'verification'
+    description = 'Runs the terminal registration load test reporter.'
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.capstone.bwlovers.loadtest.RegistrationLoadTestRunner'
+
+    loadTestProperties.each { propertyName ->
+        def value = project.findProperty(propertyName) ?: System.getProperty(propertyName)
+        if (value != null && !value.toString().isBlank()) {
+            systemProperty propertyName, value.toString()
+        }
+    }
 }
