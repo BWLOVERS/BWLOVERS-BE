@@ -1,0 +1,30 @@
+[
+  {
+    "incidentId": "sim-memory",
+    "sourceType": "SIMULATION",
+    "expectedCandidates": [
+      "MEMORY_PRESSURE"
+    ]
+  },
+  {
+    "incidentId": "sim-instance-capacity",
+    "sourceType": "SIMULATION",
+    "expectedCandidates": [
+      "INSTANCE_CAPACITY"
+    ]
+  },
+  {
+    "incidentId": "sim-db-pool",
+    "sourceType": "SIMULATION",
+    "expectedCandidates": [
+      "DB_POOL_EXHAUSTION"
+    ]
+  },
+  {
+    "incidentId": "sim-latency",
+    "sourceType": "SIMULATION",
+    "expectedCandidates": [
+      "REQUEST_LATENCY"
+    ]
+  }
+]

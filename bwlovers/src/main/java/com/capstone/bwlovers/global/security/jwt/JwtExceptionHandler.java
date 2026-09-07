@@ -30,7 +30,12 @@ public class JwtExceptionHandler implements AuthenticationEntryPoint, AccessDeni
             HttpServletResponse response,
             AuthenticationException authException
     ) throws IOException {
-        writeJson(response, ExceptionCode.AUTH_TOKEN_EMPTY, request.getRequestURI());
+        ExceptionCode exceptionCode = (ExceptionCode) request.getAttribute(JwtFilter.JWT_EXCEPTION_CODE_ATTR);
+        writeJson(
+                response,
+                exceptionCode == null ? ExceptionCode.AUTH_TOKEN_EMPTY : exceptionCode,
+                request.getRequestURI()
+        );
     }
 
     @Override

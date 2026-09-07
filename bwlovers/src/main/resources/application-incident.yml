@@ -1,0 +1,34 @@
+# Opt in with --spring.profiles.active=local,incident (or your existing profile plus incident).
+spring:
+  datasource:
+    hikari:
+      pool-name: ${INCIDENT_DB_POOL:HikariPool-1}
+
+incident:
+  webhook:
+    enabled: true
+    token: ${INCIDENT_ALERT_TOKEN}
+    metrics-token: ${INCIDENT_METRICS_TOKEN}
+    prometheus-url: ${INCIDENT_PROMETHEUS_URL:http://localhost:9090}
+    prometheus-token: ${INCIDENT_PROMETHEUS_TOKEN:}
+    job: ${INCIDENT_PROMETHEUS_JOB:bwlovers}
+    pool: ${INCIDENT_DB_POOL:HikariPool-1}
+    api-key: ${INCIDENT_OPENAI_API_KEY:${OPENAI_API_KEY:}}
+    model: ${OPENAI_INCIDENT_MODEL:gpt-4.1-mini}
+    discord-webhook-url: ${DISCORD_INCIDENT_WEBHOOK_URL}
+    worker-enabled: ${INCIDENT_WORKER_ENABLED:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 100ms,400ms,800ms,1s,5s

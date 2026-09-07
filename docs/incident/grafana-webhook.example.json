@@ -1,0 +1,29 @@
+{
+  "receiver": "incident-ai",
+  "status": "firing",
+  "commonLabels": {
+    "job": "bwlovers"
+  },
+  "commonAnnotations": {},
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "HIGH_REQUEST_LATENCY",
+        "job": "bwlovers",
+        "instance": "localhost:8080",
+        "team": "incident"
+      },
+      "annotations": {
+        "summary": "Manual webhook integration test; not a historical incident"
+      },
+      "values": {
+        "A": 0.8,
+        "C": 1
+      },
+      "startsAt": "2026-08-01T10:00:00Z",
+      "fingerprint": "manual-example"
+    }
+  ],
+  "truncatedAlerts": 0
+}

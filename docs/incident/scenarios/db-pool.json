@@ -1,0 +1,25 @@
+{
+  "incidentId": "sim-db-pool",
+  "sourceType": "SIMULATION",
+  "service": "bwlovers-api",
+  "revision": "simulation-revision",
+  "windowStart": "2026-08-01T10:00:00Z",
+  "windowEnd": "2026-08-01T10:05:00Z",
+  "metricScope": "합성 데이터. 요청/상태 코드=리비전 구간 합계, p95Latency=구간 P95(초), 메모리=동일 인스턴스 구간 최대 MiB, 인스턴스=리비전 최대, DB=해당 인스턴스의 Hikari 풀 최대. 최댓값들의 동시성은 보장하지 않음.",
+  "requestCount": 120,
+  "p95Latency": 30.1,
+  "status429Count": 0,
+  "status5xxCount": 12,
+  "memoryUsageMb": 260,
+  "memoryLimitMb": 512,
+  "activeInstanceCount": 2,
+  "maxInstanceCount": 3,
+  "dbActiveConnections": 10,
+  "dbMaxConnections": 10,
+  "relatedLogs": [
+    {
+      "timestamp": "2026-08-01T10:02:00Z",
+      "message": "HikariPool-1 - Connection is not available, request timed out after 30000ms (total=10, active=10, idle=0, waiting=8)"
+    }
+  ]
+}

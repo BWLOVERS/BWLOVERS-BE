@@ -1,0 +1,25 @@
+{
+  "incidentId": "sim-instance-capacity",
+  "sourceType": "SIMULATION",
+  "service": "bwlovers-api",
+  "revision": "simulation-revision",
+  "windowStart": "2026-08-01T10:00:00Z",
+  "windowEnd": "2026-08-01T10:05:00Z",
+  "metricScope": "합성 데이터. 요청/상태 코드=리비전 구간 합계, p95Latency=구간 P95(초), 메모리=동일 인스턴스 구간 최대 MiB, 인스턴스=리비전 최대, DB=해당 인스턴스의 Hikari 풀 최대. 최댓값들의 동시성은 보장하지 않음.",
+  "requestCount": 120,
+  "p95Latency": 4.2,
+  "status429Count": 25,
+  "status5xxCount": 0,
+  "memoryUsageMb": 230,
+  "memoryLimitMb": 512,
+  "activeInstanceCount": 1,
+  "maxInstanceCount": 1,
+  "dbActiveConnections": 3,
+  "dbMaxConnections": 10,
+  "relatedLogs": [
+    {
+      "timestamp": "2026-08-01T10:02:00Z",
+      "message": "Request aborted: no available instance to serve the request (HTTP 429)"
+    }
+  ]
+}

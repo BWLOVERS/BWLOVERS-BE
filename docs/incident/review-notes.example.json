@@ -1,0 +1,9 @@
+{
+  "causeCandidates": [
+    "담당자가 실제로 검토한 원인 후보를 작성"
+  ],
+  "additionalChecks": [
+    "담당자가 실제로 정리한 추가 확인 항목을 작성"
+  ],
+  "diagnosisReport": "../runs/ai-1/report.json"
+}
